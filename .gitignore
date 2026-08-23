@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.streamlit/
+
+# Trained/generated model artifacts
+models/*.joblib
+
+# Generated synthetic datasets and local lineage database
+# Recreate with: python scripts/generate_demo_data.py && python scripts/version_data.py
+data/raw/*.csv
+data/processed/*.csv
+data/snapshots/
+data/registry/*.sqlite3
+data/sample_request.json
