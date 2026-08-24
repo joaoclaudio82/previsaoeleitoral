@@ -32,7 +32,7 @@ HISTORICAL_ELECTIONS: dict[int, HistoricalElection] = {
         tse_results_package="resultados-2014",
         tse_poll_registry_package="pesquisas-eleitorais-2014",
         tse_turnout_package="comparecimento-e-abstencao-2014",
-        polling_page="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2014_Brazilian_general_election",
+        polling_page="https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014",
     ),
     2018: HistoricalElection(
         year=2018,
