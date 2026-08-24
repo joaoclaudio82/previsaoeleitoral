@@ -50,23 +50,30 @@ def main() -> int:
             election.first_round_date,
             election_year=year,
             previous_results=previous_results,
+            scoring_start_date=election.scoring_start_date,
             posterior_draws=args.draws,
             seed=args.seed + year,
         )
         all_forecasts.append(result.forecasts)
-        all_snapshots.append(result.snapshot_summary)
+        if not result.snapshot_summary.empty:
+            all_snapshots.append(result.snapshot_summary)
         if not result.state_summary.empty:
             all_states.append(result.state_summary)
 
     forecasts = pd.concat(all_forecasts, ignore_index=True)
-    snapshots = pd.concat(all_snapshots, ignore_index=True)
+    scoreable = forecasts[forecasts["scorable"] & forecasts["outcome"].notna() & forecasts["actual_share"].notna()].copy()
+    if scoreable.empty:
+        raise RuntimeError("No scoreable historical forecasts were produced")
+    snapshots = pd.concat(all_snapshots, ignore_index=True) if all_snapshots else pd.DataFrame()
     states = pd.concat(all_states, ignore_index=True) if all_states else pd.DataFrame()
-    by_election = calibration_by_group(forecasts, ["election_year", "level"])
-    by_uf = calibration_by_group(forecasts[forecasts["level"] == "state"], ["election_year", "uf"]) if (forecasts["level"] == "state").any() else pd.DataFrame()
-    bins = reliability_bins(forecasts)
-    slope = calibration_slope_intercept(forecasts)
+    by_election = calibration_by_group(scoreable, ["election_year", "level"])
+    state_scoreable = scoreable[scoreable["level"] == "state"]
+    by_uf = calibration_by_group(state_scoreable, ["election_year", "uf"]) if not state_scoreable.empty else pd.DataFrame()
+    bins = reliability_bins(scoreable)
+    slope = calibration_slope_intercept(scoreable)
 
-    forecasts.to_csv(args.output / "forecasts.csv", index=False)
+    forecasts.to_csv(args.output / "forecasts_all_snapshots.csv", index=False)
+    scoreable.to_csv(args.output / "forecasts_scoreable.csv", index=False)
     snapshots.to_csv(args.output / "metrics_by_snapshot.csv", index=False)
     states.to_csv(args.output / "metrics_by_state.csv", index=False)
     by_election.to_csv(args.output / "calibration_by_election.csv", index=False)
@@ -75,9 +82,10 @@ def main() -> int:
     summary = {
         "years": args.years,
         "forecast_rows": len(forecasts),
+        "scoreable_rows": len(scoreable),
         "posterior_draws": args.draws,
         "calibration": slope,
-        "note": "Backtests use only information available on or before each snapshot date.",
+        "note": "All snapshots are archived; only post-candidate-slate snapshots enter calibration metrics.",
     }
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
