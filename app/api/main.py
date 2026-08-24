@@ -12,10 +12,11 @@ from app.services.predictor import predict
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
+    version="0.3.0",
     description=(
         "API probabilística com agregação Bayesiana hierárquica, efeitos estaduais, "
-        "nowcasting de comparecimento, transferência aprendida e linhagem de dados."
+        "nowcasting de comparecimento, transferência aprendida, linhagem de dados e "
+        "infraestrutura de backtesting histórico real."
     ),
 )
 
@@ -32,7 +33,7 @@ def health() -> dict:
         "turnout": settings.turnout_model_path.exists(),
         "transfer": settings.transfer_model_path.exists(),
     }
-    return {"status": "ok", "version": "0.2.0", "models": models, "all_models_ready": all(models.values())}
+    return {"status": "ok", "version": "0.3.0", "models": models, "all_models_ready": all(models.values())}
 
 
 @app.get("/lineage/datasets")
