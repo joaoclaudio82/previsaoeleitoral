@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 from sklearn.isotonic import IsotonicRegression
@@ -11,10 +11,11 @@ class ProbabilityCalibrator:
     """Monotonic out-of-sample probability calibrator."""
 
     out_of_bounds: str = "clip"
+    _model: IsotonicRegression = field(init=False, repr=False)
+    _fitted: bool = field(init=False, default=False, repr=False)
 
     def __post_init__(self) -> None:
         self._model = IsotonicRegression(y_min=0.0, y_max=1.0, out_of_bounds=self.out_of_bounds)
-        self._fitted = False
 
     def fit(self, probability: np.ndarray, outcome: np.ndarray) -> "ProbabilityCalibrator":
         p = np.asarray(probability, dtype=float)
