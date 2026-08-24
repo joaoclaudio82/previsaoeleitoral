@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 
 from app.data.candidate_identity import canonical_candidate
+from app.data.geography import BRAZIL_UF_SET
 
 
 def build_state_priors(
@@ -28,6 +29,8 @@ def build_state_priors(
         raise ValueError(f"current_candidates missing columns: {sorted(missing)}")
 
     prior = previous_results.copy()
+    prior["uf"] = prior["uf"].astype(str).str.upper().str.strip()
+    prior = prior[prior["uf"].isin(BRAZIL_UF_SET)].copy()
     prior["canonical"] = prior["candidate_name"].map(canonical_candidate)
     prior["party"] = prior["party"].astype(str).str.upper().str.strip()
     candidates = current_candidates.copy()
@@ -40,10 +43,10 @@ def build_state_priors(
     party_national = prior.groupby("party", as_index=True)["vote_share"].mean().to_dict()
     neutral = 1.0 / max(len(candidates), 1)
     rows: list[dict[str, object]] = []
-    ufs = sorted(uf for uf in prior["uf"].dropna().astype(str).unique() if uf != "BR")
+    ufs = sorted(uf for uf in prior["uf"].dropna().astype(str).unique() if uf in BRAZIL_UF_SET)
 
     for uf in ufs:
-        state = prior[prior["uf"].astype(str) == uf]
+        state = prior[prior["uf"] == uf]
         state_by_candidate = state.groupby("canonical")["vote_share"].sum().to_dict()
         state_by_party = state.groupby("party")["vote_share"].sum().to_dict()
         values: list[tuple[pd.Series, float, float, str]] = []
