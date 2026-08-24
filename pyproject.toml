@@ -1,7 +1,7 @@
 [project]
 name = "election-ai"
-version = "0.2.0"
-description = "Plataforma probabilística com modelo eleitoral Bayesiano hierárquico"
+version = "0.3.0"
+description = "Plataforma probabilística com modelo eleitoral Bayesiano hierárquico e backtesting histórico"
 requires-python = ">=3.11"
 
 [tool.pytest.ini_options]
