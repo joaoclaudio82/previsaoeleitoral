@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 
-import numpy as np
 import pandas as pd
 
 from app.ml.scoring import (
@@ -57,5 +56,5 @@ def summarize_by_group(frame: pd.DataFrame, group_column: str) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for key, group in frame.groupby(group_column, dropna=False):
         metrics = evaluate_binary_forecasts(group)
-        rows.append({group_column: key, **metrics.__dict__})
+        rows.append({group_column: key, **asdict(metrics)})
     return pd.DataFrame(rows)
