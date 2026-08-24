@@ -1,12 +1,56 @@
-# ElectionAI 0.2
+# ElectionAI 0.3
 
-Plataforma experimental para **previsão probabilística de eleições presidenciais**, com agregação Bayesiana hierárquica, efeitos estaduais, nowcasting de comparecimento e simulação de segundo turno.
+Plataforma experimental para **previsão probabilística de eleições presidenciais**, com agregação Bayesiana hierárquica, efeitos estaduais, nowcasting de comparecimento, simulação de segundo turno e backtesting temporal com eleições brasileiras históricas.
 
-> **Bloqueio de uso indevido:** todos os dados distribuídos neste repositório são sintéticos. A API remove o campo de vencedor público, registra o bloqueio e aplica a marca d'água **“DEMONSTRAÇÃO SINTÉTICA — NÃO É PREVISÃO ELEITORAL”**. Os resultados não representam a eleição presidencial brasileira de 2026.
+> **Bloqueio de uso indevido:** os dados sintéticos distribuídos com a demonstração continuam bloqueados para publicação como previsão eleitoral. A API remove o campo de vencedor público, registra o bloqueio e aplica a marca d'água **“DEMONSTRAÇÃO SINTÉTICA — NÃO É PREVISÃO ELEITORAL”**. Os resultados sintéticos não representam a eleição presidencial brasileira de 2026.
 
-## Evoluções da versão 0.2
+## Novidade da versão 0.3: backtesting histórico real
 
-### Agregador Bayesiano hierárquico
+A v0.3 acrescenta uma camada reproduzível para reconstruir previsões em eleições presidenciais passadas usando apenas informação disponível até cada data de corte.
+
+Fontes e escopo:
+
+- resultados oficiais por UF: Portal de Dados Abertos do TSE;
+- comparecimento e abstenção: TSE quando disponível;
+- registro e metodologia de pesquisas: PesqEle/TSE;
+- percentuais históricos de intenção de voto: tabelas públicas versionadas por URL, mantidas separadas da fonte oficial de resultados;
+- eleições usadas como base: 2010, 2014, 2018 e 2022;
+- eleições pontuáveis atualmente: 2014, 2018 e 2022.
+
+Snapshots temporais:
+
+```text
+D-180 · D-120 · D-90 · D-60 · D-30 · D-15 · D-7 · D-3 · D-1
+```
+
+Cada snapshot elimina pesquisas futuras, limita a idade das pesquisas, fixa uma única composição de candidatos e registra a origem dos dados. Em 2014 e 2018, snapshots anteriores à estabilização da candidatura são preservados como exploratórios, mas não entram nas métricas retrospectivas de calibração.
+
+### Executar a reconstrução histórica
+
+```bash
+python scripts/fetch_historical_data.py --years 2010 2014 2018 2022
+python scripts/run_historical_backtest.py --years 2014 2018 2022 --draws 4000
+```
+
+Os relatórios são gravados em:
+
+```text
+reports/historical_backtest/
+├── forecasts_all_snapshots.csv
+├── forecasts_scoreable.csv
+├── metrics_by_snapshot.csv
+├── metrics_by_state.csv
+├── calibration_by_election.csv
+├── calibration_by_uf.csv
+├── reliability_bins.csv
+└── summary.json
+```
+
+Também existe o workflow manual `.github/workflows/historical-backtest.yml`, que baixa as bases, executa os testes, roda o backtest e publica os relatórios como artifact do GitHub Actions.
+
+A metodologia completa está em [`docs/HISTORICAL_BACKTEST.md`](docs/HISTORICAL_BACKTEST.md).
+
+## Modelo Bayesiano hierárquico
 
 A média ponderada da versão 0.1 foi substituída por um modelo matrix-normal em espaço additive log-ratio. O posterior inclui:
 
@@ -31,12 +75,14 @@ A inferência é fechada e gera amostras posteriores sem executar MCMC em cada c
 
 ### Previsão por UF e comparecimento
 
-O modelo produz posterior por estado e agrega votos usando:
+O modelo produz posterior pelas **27 UFs oficiais** e agrega votos usando:
 
 - número de eleitores registrados;
 - apoio estadual amostrado;
 - indecisos alocados probabilisticamente;
 - comparecimento amostrado por UF.
+
+Nos backtests, os priors estaduais só usam eleições presidenciais anteriores: mesmo candidato, depois mesmo partido, depois informação nacional histórica e, por último, um prior neutro com menor força.
 
 O nowcast de comparecimento é uma regressão Bayesiana na escala logit com efeitos regularizados por estado.
 
@@ -59,22 +105,24 @@ Os valores brutos não entram diretamente no modelo estrutural.
 
 Cada conjunto de entrada recebe:
 
-- snapshot CSV imutável;
+- snapshot imutável;
 - hash SHA-256;
 - versão incremental;
 - schema e metadados;
 - classificação sintética ou operacional;
 - vínculo com cada execução de previsão.
 
-A implementação local usa SQLite em `data/registry/election_ai.sqlite3` e snapshots em `data/snapshots/`.
+Downloads históricos oficiais também registram URL e SHA-256 em `data/historical/<ano>/manifest.json`.
 
 ## Arquitetura
 
 ```text
-Pesquisas nacionais e estaduais
-            │
-            ▼
-Modelo Bayesiano hierárquico
+Resultados TSE + pesquisas históricas ──► snapshots temporais ──► backtesting/calibração
+                                                │
+Pesquisas nacionais e estaduais                 │
+            │                                   │
+            ▼                                   │
+Modelo Bayesiano hierárquico ◄──────────────────┘
 instituto · modo · população · UF · indecisos · erro correlacionado
             │
             ├───────────────┐
@@ -95,7 +143,7 @@ Posterior por UF      Modelo estrutural
  Probabilidades, intervalos, diagnósticos e linhagem
 ```
 
-## Execução rápida
+## Execução rápida da demonstração sintética
 
 Requer Python 3.11 ou superior.
 
@@ -125,30 +173,13 @@ uvicorn app.api.main:app --reload
 
 Documentação Swagger: `http://localhost:8000/docs`
 
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  --data @data/sample_request.json
-```
-
-Para o payload sintético distribuído, a resposta contém:
-
-```json
-{
-  "model_version": "0.2.0",
-  "likely_winner": null,
-  "publication_status": "BLOCKED_SYNTHETIC_DEMONSTRATION",
-  "watermark": "DEMONSTRAÇÃO SINTÉTICA — NÃO É PREVISÃO ELEITORAL"
-}
-```
+Para payloads sintéticos, `likely_winner` permanece `null` e `publication_status` permanece bloqueado.
 
 ### Dashboard
 
 ```bash
 streamlit run app/dashboard/app.py
 ```
-
-A interface mostra o ranking apenas como **resultado interno da simulação sintética** e mantém a advertência visível.
 
 ### Docker
 
@@ -159,11 +190,24 @@ docker compose up --build
 - API: `http://localhost:8000/docs`
 - Dashboard: `http://localhost:8501`
 
-## Contrato dos dados
+## Métricas de validação histórica
 
-### Pesquisas
+A v0.3 avalia mais do que acerto do vencedor:
 
-Campos principais de `current_polls.csv`:
+- Brier score;
+- log loss;
+- erro absoluto médio da participação de votos;
+- cobertura dos intervalos posteriores;
+- Expected Calibration Error;
+- reliability bins;
+- inclinação e intercepto aproximados de calibração;
+- métricas por eleição, snapshot e UF.
+
+O objetivo é que uma previsão de 70% se comporte como uma probabilidade de 70% em eventos comparáveis, e não apenas produza um ranking correto em uma eleição isolada.
+
+## Contrato dos dados de pesquisas
+
+Campos principais:
 
 | Campo | Uso |
 |---|---|
@@ -182,52 +226,42 @@ Campos principais de `current_polls.csv`:
 
 O campo legado `institute_quality` é ignorado.
 
-### Priors estaduais
-
-`state_priors.csv` contém participação inicial por candidato, força do prior, região e eleitorado. Em produção, esses priors devem ser derivados de eleições anteriores, demografia e modelos documentados, nunca de opinião subjetiva.
-
-### Comparecimento
-
-`current_turnout.csv` contém covariáveis estaduais para o nowcast. O arquivo histórico de treino fica em `data/processed/historical_turnout.csv`.
-
-### Fundamentos e sinais digitais
-
-Além de rejeição, incumbência e economia, o modelo recebe atributos para transferência e decisão tardia. Buscas e sentimento possuem campos de confiabilidade e anomalia; o pipeline gera versões protegidas antes do uso.
-
-## Scripts
+## Scripts principais
 
 | Script | Função |
 |---|---|
-| `generate_demo_data.py` | cria todos os dados sintéticos da versão 0.2 |
+| `fetch_historical_data.py` | baixa e normaliza resultados/comparecimento do TSE e tabelas históricas de pesquisas |
+| `run_historical_backtest.py` | executa snapshots históricos e gera métricas nacionais/estaduais |
+| `backtest_v03.py` | avalia CSVs de previsões já produzidos |
+| `validate_data.py` | valida contratos e qualidade dos datasets |
+| `model_report.py` | gera relatório metodológico em Markdown |
+| `generate_demo_data.py` | cria os dados sintéticos da demonstração |
 | `train.py` | treina modelo estrutural, calibração de institutos, turnout e transferência |
 | `version_data.py` | registra snapshots e hashes no banco |
-| `evaluate.py` | avalia o componente estrutural em eleições sintéticas agrupadas |
-| `predict_demo.py` | executa a simulação completa com bloqueio de publicação |
+| `predict_demo.py` | executa a simulação sintética com bloqueio de publicação |
 
 ## Testes implementados
 
-- normalização e efeitos estaduais do posterior hierárquico;
-- ausência de dependência de `institute_quality`;
-- versionamento imutável e deduplicação por hash;
-- nowcast de comparecimento em intervalo válido;
-- aprendizado de transferência por proximidade;
-- integração ponta a ponta com 27 UFs;
-- bloqueio de publicação sintética;
-- contrato da API e health check.
+Além da suíte da v0.2, a v0.3 cobre:
 
-## Limitações que permanecem
+- normalização de resultados históricos do TSE;
+- preservação de partido e participação por UF;
+- ausência de pesquisas posteriores ao snapshot;
+- consistência da composição de candidatos em cada snapshot;
+- priors estaduais derivados apenas de eleição anterior;
+- restrição do nível estadual às 27 UFs;
+- métricas probabilísticas, drift e release gate;
+- bloqueio contínuo da demonstração sintética.
 
-A versão 0.2 resolve as limitações arquiteturais listadas, mas ainda é um laboratório. Antes de qualquer uso real, ainda são necessários:
+## Limitações e próximos passos
 
-- base histórica brasileira real, completa e legalmente utilizável;
-- reconstrução dos dados disponíveis em cada data passada;
-- tratamento de mudanças de candidatura e cenários de pergunta;
-- correção explícita de não resposta por perfil demográfico;
-- modelo espacial mais rico para estados sem pesquisa;
-- validação de turnout contra eleições brasileiras reais;
-- pesquisas específicas de segundo turno para calibrar transferência;
-- detecção temporal de mudança de regime em plataformas digitais;
-- backtesting temporal, calibração e revisão metodológica independente;
-- política pública de revisão, correção e arquivamento de previsões.
+A v0.3 cria a infraestrutura necessária para validação histórica real, mas algumas limitações precisam continuar explícitas:
 
-Consulte `METHODOLOGY.md`, `MODEL_CARD.md` e `CHANGELOG.md` para detalhes.
+- tabelas históricas de intenção de voto são fonte secundária e devem ser gradualmente substituídas por arquivos primários dos institutos;
+- cenários de pergunta e mudanças de candidatura exigem curadoria por eleição;
+- o modelo espacial pode evoluir de partial pooling para CAR/ICAR;
+- turnout pode incorporar composição demográfica e comportamento individual quando dados adequados estiverem disponíveis;
+- segundo turno deve receber uma reconstrução histórica própria de pesquisas e transferências;
+- nenhuma previsão real de 2026 deve ser publicada antes de os backtests produzirem calibração e cobertura aceitáveis e passarem pelo release gate.
+
+Consulte `METHODOLOGY.md`, `MODEL_CARD.md`, `CHANGELOG.md` e `docs/HISTORICAL_BACKTEST.md` para detalhes.
