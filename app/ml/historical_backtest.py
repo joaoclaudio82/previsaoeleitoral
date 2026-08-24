@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
@@ -29,7 +29,7 @@ def _actual_selected(results: pd.DataFrame, candidate_names: list[str], round_nu
     wanted = {canonical_candidate(name) for name in candidate_names}
     frame = frame[frame["canonical"].isin(wanted)].copy()
     if frame.empty:
-        raise ValueError("No official TSE results matched the forecast candidate set")
+        return pd.DataFrame(columns=["uf", "canonical", "actual_share"])
     grouped = frame.groupby(["uf", "canonical"], as_index=False)["votes"].sum()
     state_totals = grouped.groupby("uf")["votes"].transform("sum")
     grouped["actual_share"] = grouped["votes"] / state_totals.where(state_totals > 0)
@@ -46,15 +46,17 @@ def _posterior_records(
     election_year: int,
     snapshot_date: date,
     days_before_election: int,
+    scorable: bool,
 ) -> list[dict[str, object]]:
     candidate_canonical = [canonical_candidate(name) for name in posterior.candidate_names]
-    actual_lookup = actual.set_index(["uf", "canonical"])["actual_share"].to_dict()
+    actual_lookup = actual.set_index(["uf", "canonical"])["actual_share"].to_dict() if not actual.empty else {}
     records: list[dict[str, object]] = []
 
     def append_geo(uf: str, draws: np.ndarray, level: str) -> None:
         winners = np.argmax(draws, axis=1)
-        actual_values = np.array([actual_lookup.get((uf, key), 0.0) for key in candidate_canonical], dtype=float)
-        actual_winner = int(np.argmax(actual_values)) if actual_values.sum() > 0 else -1
+        actual_values = np.array([actual_lookup.get((uf, key), np.nan) for key in candidate_canonical], dtype=float)
+        valid_actual = np.isfinite(actual_values)
+        actual_winner = int(np.nanargmax(actual_values)) if valid_actual.any() and np.nansum(actual_values) > 0 else -1
         for idx, (candidate_id, candidate_name, canonical) in enumerate(
             zip(posterior.candidate_ids, posterior.candidate_names, candidate_canonical)
         ):
@@ -64,6 +66,7 @@ def _posterior_records(
                     "election_year": election_year,
                     "snapshot_date": snapshot_date.isoformat(),
                     "days_before_election": days_before_election,
+                    "scorable": bool(scorable),
                     "uf": uf,
                     "level": level,
                     "candidate_id": candidate_id,
@@ -73,8 +76,8 @@ def _posterior_records(
                     "predicted_share": float(values.mean()),
                     "lower": float(np.quantile(values, 0.05)),
                     "upper": float(np.quantile(values, 0.95)),
-                    "actual_share": float(actual_values[idx]),
-                    "outcome": int(idx == actual_winner),
+                    "actual_share": float(actual_values[idx]) if np.isfinite(actual_values[idx]) else np.nan,
+                    "outcome": int(idx == actual_winner) if scorable and actual_winner >= 0 else np.nan,
                 }
             )
 
@@ -86,7 +89,14 @@ def _posterior_records(
     return records
 
 
+def _scored(frame: pd.DataFrame) -> pd.DataFrame:
+    return frame[frame["scorable"] & frame["outcome"].notna() & frame["actual_share"].notna()].copy()
+
+
 def _snapshot_metrics(frame: pd.DataFrame) -> pd.DataFrame:
+    frame = _scored(frame)
+    if frame.empty:
+        return pd.DataFrame()
     rows: list[dict[str, object]] = []
     for (year, days, level), group in frame.groupby(["election_year", "days_before_election", "level"]):
         probability = np.clip(group["win_probability"].to_numpy(dtype=float), 1e-9, 1 - 1e-9)
@@ -107,7 +117,8 @@ def _snapshot_metrics(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def _state_metrics(frame: pd.DataFrame) -> pd.DataFrame:
-    states = frame[frame["level"] == "state"].copy()
+    states = _scored(frame)
+    states = states[states["level"] == "state"].copy()
     if states.empty:
         return pd.DataFrame()
     rows: list[dict[str, object]] = []
@@ -132,6 +143,7 @@ def run_historical_backtest(
     *,
     election_year: int,
     previous_results: pd.DataFrame | None = None,
+    scoring_start_date: date | None = None,
     offsets: tuple[int, ...] = (180, 120, 90, 60, 30, 15, 7, 3, 1),
     posterior_draws: int = 4000,
     seed: int = 42,
@@ -139,19 +151,20 @@ def run_historical_backtest(
     snapshots = build_snapshots(polls, election_date, offsets=offsets)
     if not snapshots:
         raise ValueError(f"No historical snapshots available for {election_year}")
-    candidates = _candidate_frame(polls)
-    state_priors = None
-    if previous_results is not None and not previous_results.empty:
-        previous_first_round = previous_results[pd.to_numeric(previous_results["round"], errors="coerce") == 1]
-        state_priors = build_state_priors(previous_first_round, candidates)
-    actual = _actual_selected(official_results, candidates["candidate_name"].tolist(), round_number=1)
 
     records: list[dict[str, object]] = []
     for index, (days, snapshot) in enumerate(sorted(snapshots.items(), reverse=True)):
-        snapshot_date = election_date - pd.Timedelta(days=days)
+        snapshot_date = election_date - timedelta(days=days)
+        snapshot_candidates = _candidate_frame(snapshot)
+        state_priors = None
+        if previous_results is not None and not previous_results.empty:
+            previous_first_round = previous_results[pd.to_numeric(previous_results["round"], errors="coerce") == 1]
+            state_priors = build_state_priors(previous_first_round, snapshot_candidates)
+        actual = _actual_selected(official_results, snapshot_candidates["candidate_name"].tolist(), round_number=1)
+        scorable = scoring_start_date is None or snapshot_date >= scoring_start_date
         posterior = fit_hierarchical_poll_model(
             snapshot,
-            snapshot_date.date() if hasattr(snapshot_date, "date") else snapshot_date,
+            snapshot_date,
             state_priors=state_priors,
             calibration=None,
             n_draws=posterior_draws,
@@ -162,8 +175,9 @@ def run_historical_backtest(
                 posterior,
                 actual,
                 election_year=election_year,
-                snapshot_date=snapshot_date.date() if hasattr(snapshot_date, "date") else snapshot_date,
+                snapshot_date=snapshot_date,
                 days_before_election=days,
+                scorable=scorable,
             )
         )
     forecasts = pd.DataFrame(records)
