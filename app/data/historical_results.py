@@ -47,6 +47,7 @@ def normalize_presidential_results(frame: pd.DataFrame, year: int | None = None)
     turn_col = _first_existing(frame, ("NR_TURNO", "NUM_TURNO"))
     candidate_col = _first_existing(frame, ("NM_VOTAVEL", "NM_CANDIDATO", "DS_CARGO_PERGUNTA"))
     votes_col = _first_existing(frame, ("QT_VOTOS", "QT_VOTOS_NOMINAIS", "QT_VOTOS_NOMINAIS_VALIDOS"))
+    party_col = next((c for c in ("SG_PARTIDO", "NR_PARTIDO", "NM_PARTIDO") if c in frame.columns), None)
 
     clean = pd.DataFrame(
         {
@@ -54,11 +55,12 @@ def normalize_presidential_results(frame: pd.DataFrame, year: int | None = None)
             "round": pd.to_numeric(frame[turn_col], errors="coerce"),
             "uf": frame[uf_col].astype(str).str.upper().str.strip(),
             "candidate_name": frame[candidate_col].astype(str).str.strip(),
+            "party": frame[party_col].astype(str).str.upper().str.strip() if party_col else "UNKNOWN",
             "votes": pd.to_numeric(frame[votes_col], errors="coerce").fillna(0).astype("int64"),
         }
     )
     clean = clean[~clean["candidate_name"].str.upper().isin({"BRANCO", "NULO", "#NULO#", "NULO TÉCNICO"})]
-    grouped = clean.groupby(["year", "round", "uf", "candidate_name"], as_index=False, dropna=False)["votes"].sum()
+    grouped = clean.groupby(["year", "round", "uf", "candidate_name", "party"], as_index=False, dropna=False)["votes"].sum()
     valid_totals = grouped.groupby(["year", "round", "uf"])["votes"].transform("sum")
     grouped["vote_share"] = grouped["votes"] / valid_totals.where(valid_totals > 0)
     return grouped.sort_values(["year", "round", "uf", "votes"], ascending=[True, True, True, False]).reset_index(drop=True)
