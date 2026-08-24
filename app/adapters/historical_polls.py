@@ -103,6 +103,7 @@ def _find_column(columns: Iterable[str], *tokens: str) -> str | None:
 def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFrame:
     tables = pd.read_html(url, flavor="lxml")
     rows: list[dict[str, object]] = []
+    minimum_candidates = 3 if round_number == 1 else 2
     for table_index, raw in enumerate(tables):
         frame = _flatten_columns(raw)
         pollster_col = _find_column(frame.columns, "polling firm", "publisher/pollster", "pollster", "instituto")
@@ -111,7 +112,7 @@ def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFr
             continue
         sample_col = _find_column(frame.columns, "sample size", "sample", "amostra")
         candidates = _candidate_columns(frame)
-        if len(candidates) < 2:
+        if len(candidates) < minimum_candidates:
             continue
         for _, source_row in frame.iterrows():
             poll_date = _poll_end_date(source_row[date_col], year)
