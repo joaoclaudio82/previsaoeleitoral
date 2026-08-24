@@ -63,6 +63,17 @@ def snapshot_dates(election_date: date, offsets: tuple[int, ...] = DEFAULT_OFFSE
     return [election_date - timedelta(days=days) for days in offsets]
 
 
+def _candidate_signatures(frame: pd.DataFrame) -> pd.DataFrame:
+    meta = frame.groupby("poll_id", as_index=False).agg(field_date=("field_date", "max"))
+    signatures = (
+        frame.groupby("poll_id")["candidate_id"]
+        .apply(lambda values: tuple(sorted(set(map(str, values)))))
+        .rename("signature")
+        .reset_index()
+    )
+    return meta.merge(signatures, on="poll_id", how="inner")
+
+
 def build_snapshots(
     polls: pd.DataFrame,
     election_date: date,
@@ -78,11 +89,14 @@ def build_snapshots(
         eligible = frame[(frame["field_date"] <= cutoff) & (frame["field_date"] >= earliest)].copy()
         if eligible.empty:
             continue
-        complete_counts = eligible.groupby("poll_id")["candidate_id"].nunique()
-        mode_count = int(complete_counts.mode().iloc[0])
-        complete_ids = complete_counts[complete_counts == mode_count].index
-        eligible = eligible[eligible["poll_id"].isin(complete_ids)].copy()
+        signatures = _candidate_signatures(eligible).sort_values(["field_date", "poll_id"], ascending=[False, False])
+        latest_signature = signatures.iloc[0]["signature"]
+        compatible_ids = signatures.loc[signatures["signature"] == latest_signature, "poll_id"]
+        eligible = eligible[eligible["poll_id"].isin(compatible_ids)].copy()
+        if eligible["candidate_id"].nunique() < 2:
+            continue
         eligible["snapshot_date"] = cutoff.isoformat()
         eligible["days_before_election"] = days
+        eligible["candidate_slate_hash"] = hashlib.sha1("|".join(latest_signature).encode("utf-8")).hexdigest()[:12]
         snapshots[days] = eligible.reset_index(drop=True)
     return snapshots
