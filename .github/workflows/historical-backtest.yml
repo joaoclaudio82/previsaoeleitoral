@@ -1,0 +1,42 @@
+name: historical-backtest
+
+on:
+  workflow_dispatch:
+    inputs:
+      draws:
+        description: Posterior draws per snapshot
+        required: false
+        default: "4000"
+      years:
+        description: Space separated scoreable election years
+        required: false
+        default: "2014 2018 2022"
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Unit tests
+        run: pytest -q
+      - name: Fetch official and published historical data
+        run: python scripts/fetch_historical_data.py --years 2010 2014 2018 2022
+      - name: Run leakage-safe backtests
+        shell: bash
+        run: |
+          python scripts/run_historical_backtest.py \
+            --years ${{ inputs.years }} \
+            --draws ${{ inputs.draws }}
+      - name: Publish report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: electionai-historical-backtest-${{ github.run_id }}
+          path: reports/historical_backtest/
+          retention-days: 30
