@@ -15,6 +15,13 @@ NON_CANDIDATE_TOKENS = {
     "polling period", "sample size", "sample", "lead", "others", "other",
     "blank/null/undec.", "blank/null/undec", "undecided", "abst.", "abstention",
     "results", "result", "source", "margin of error",
+    "instituto", "data", "periodo", "periodo da pesquisa", "amostra", "margem de erro",
+    "branco", "nulo", "indeciso", "nao sabe", "nenhum", "outros", "resultado",
+}
+
+PT_MONTHS = {
+    "janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4, "maio": 5, "junho": 6,
+    "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
 }
 
 
@@ -55,6 +62,10 @@ def _poll_end_date(value: object, year: int) -> date | None:
     parsed = pd.to_datetime(text, errors="coerce", dayfirst=True)
     if pd.notna(parsed):
         return parsed.date()
+    folded = _fold(text)
+    pt_match = re.search(r"(?:\d{1,2}\s*(?:-|a)\s*)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?", folded)
+    if pt_match and pt_match.group(2) in PT_MONTHS:
+        return date(int(pt_match.group(3) or year), PT_MONTHS[pt_match.group(2)], int(pt_match.group(1)))
     month_match = re.search(
         r"(?:\d{1,2}\s*[-/]\s*)?(\d{1,2})\s+"
         r"(January|February|March|April|May|June|July|August|September|October|November|December)"
@@ -94,11 +105,11 @@ def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFr
     rows: list[dict[str, object]] = []
     for table_index, raw in enumerate(tables):
         frame = _flatten_columns(raw)
-        pollster_col = _find_column(frame.columns, "polling firm", "publisher/pollster", "pollster")
-        date_col = _find_column(frame.columns, "date(s) administered", "polling period", "date")
+        pollster_col = _find_column(frame.columns, "polling firm", "publisher/pollster", "pollster", "instituto")
+        date_col = _find_column(frame.columns, "date(s) administered", "polling period", "periodo da pesquisa", "periodo", "data")
         if pollster_col is None or date_col is None:
             continue
-        sample_col = _find_column(frame.columns, "sample size", "sample")
+        sample_col = _find_column(frame.columns, "sample size", "sample", "amostra")
         candidates = _candidate_columns(frame)
         if len(candidates) < 2:
             continue
@@ -107,7 +118,7 @@ def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFr
             if poll_date is None:
                 continue
             pollster = str(source_row[pollster_col]).strip()
-            if not pollster or pollster.lower() in {"nan", "results"}:
+            if not pollster or _fold(pollster) in {"nan", "results", "resultado", "eleicoes"}:
                 continue
             sample_size: int | None = None
             if sample_col is not None:
