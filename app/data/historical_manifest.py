@@ -9,6 +9,7 @@ class HistoricalElection:
     year: int
     first_round_date: date
     second_round_date: date | None
+    scoring_start_date: date | None
     tse_results_package: str
     tse_poll_registry_package: str | None
     tse_turnout_package: str | None
@@ -20,6 +21,7 @@ HISTORICAL_ELECTIONS: dict[int, HistoricalElection] = {
         year=2010,
         first_round_date=date(2010, 10, 3),
         second_round_date=date(2010, 10, 31),
+        scoring_start_date=None,
         tse_results_package="resultados-2010",
         tse_poll_registry_package=None,
         tse_turnout_package=None,
@@ -29,6 +31,7 @@ HISTORICAL_ELECTIONS: dict[int, HistoricalElection] = {
         year=2014,
         first_round_date=date(2014, 10, 5),
         second_round_date=date(2014, 10, 26),
+        scoring_start_date=date(2014, 8, 16),
         tse_results_package="resultados-2014",
         tse_poll_registry_package="pesquisas-eleitorais-2014",
         tse_turnout_package="comparecimento-e-abstencao-2014",
@@ -38,6 +41,7 @@ HISTORICAL_ELECTIONS: dict[int, HistoricalElection] = {
         year=2018,
         first_round_date=date(2018, 10, 7),
         second_round_date=date(2018, 10, 28),
+        scoring_start_date=date(2018, 9, 11),
         tse_results_package="resultados-2018",
         tse_poll_registry_package="pesquisas-eleitorais-2018",
         tse_turnout_package="comparecimento-e-abstencao-2018",
@@ -47,6 +51,7 @@ HISTORICAL_ELECTIONS: dict[int, HistoricalElection] = {
         year=2022,
         first_round_date=date(2022, 10, 2),
         second_round_date=date(2022, 10, 30),
+        scoring_start_date=date(2022, 8, 16),
         tse_results_package="resultados-2022",
         tse_poll_registry_package="pesquisas-eleitorais-2022",
         tse_turnout_package="comparecimento-e-abstencao-2022",
