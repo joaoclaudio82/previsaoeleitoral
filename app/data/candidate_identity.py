@@ -9,12 +9,12 @@ ALIASES: dict[str, set[str]] = {
     "bolsonaro": {"jair bolsonaro", "jair messias bolsonaro", "bolsonaro"},
     "dilma": {"dilma rousseff", "dilma vana rousseff"},
     "aecio": {"aecio neves", "aécio neves", "aecio neves da cunha"},
-    "haddad": {"fernando haddad"},
-    "ciro": {"ciro gomes", "ciro ferreira gomes"},
-    "marina": {"marina silva", "maria osmarina marina silva vaz de lima"},
-    "alckmin": {"geraldo alckmin", "geraldo jose rodrigues alckmin filho"},
-    "tebet": {"simone tebet", "simone nassar tebet"},
-    "amoedo": {"joao amoedo", "joão amoêdo", "joao dionisio filgueira barreto amoedo"},
+    "haddad": {"fernando haddad", "haddad"},
+    "ciro": {"ciro gomes", "ciro ferreira gomes", "ciro"},
+    "marina": {"marina silva", "maria osmarina marina silva vaz de lima", "marina"},
+    "alckmin": {"geraldo alckmin", "geraldo jose rodrigues alckmin filho", "alckmin"},
+    "tebet": {"simone tebet", "simone nassar tebet", "tebet"},
+    "amoedo": {"joao amoedo", "joão amoêdo", "joao dionisio filgueira barreto amoedo", "amoedo", "amoêdo"},
 }
 
 
@@ -36,7 +36,12 @@ def canonical_candidate(value: str) -> str:
     if normalized in _LOOKUP:
         return _LOOKUP[normalized]
     tokens = normalized.split()
+    matches: list[tuple[int, str]] = []
     for alias, canonical in _LOOKUP.items():
-        if len(alias.split()) >= 2 and all(token in tokens for token in alias.split()):
-            return canonical
+        alias_tokens = alias.split()
+        if all(token in tokens for token in alias_tokens):
+            matches.append((len(alias_tokens), canonical))
+    if matches:
+        matches.sort(reverse=True)
+        return matches[0][1]
     return normalized.replace(" ", "_")
