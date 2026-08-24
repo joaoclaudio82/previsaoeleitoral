@@ -15,3 +15,10 @@ data/processed/*.csv
 data/snapshots/
 data/registry/*.sqlite3
 data/sample_request.json
+
+# Historical election downloads are reproducible and can be very large.
+# Recreate with: python scripts/fetch_historical_data.py
+data/historical/
+
+# Historical backtest reports are generated artifacts.
+reports/historical_backtest/
