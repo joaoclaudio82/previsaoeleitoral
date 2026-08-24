@@ -32,12 +32,15 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
     frame["poll_date"] = pd.to_datetime(frame["poll_date"], errors="coerce").dt.date
     frame = frame[frame["poll_date"].notna()].copy()
     frame["candidate_id"] = frame["candidate_name"].map(candidate_id)
-    frame["sample_size"] = pd.to_numeric(frame.get("sample_size"), errors="coerce").fillna(1000).clip(lower=100)
+    sample_source = frame["sample_size"] if "sample_size" in frame.columns else pd.Series(1000, index=frame.index)
+    frame["sample_size"] = pd.to_numeric(sample_source, errors="coerce").fillna(1000).clip(lower=100)
     frame["margin_error"] = 98.0 / frame["sample_size"].map(math.sqrt)
+    source_tables = frame["source_table"] if "source_table" in frame.columns else pd.Series(0, index=frame.index)
     frame["poll_id"] = [
         _poll_id(int(y), str(p), d.isoformat(), t)
-        for y, p, d, t in zip(frame["year"], frame["pollster"], frame["poll_date"], frame.get("source_table", 0))
+        for y, p, d, t in zip(frame["year"], frame["pollster"], frame["poll_date"], source_tables)
     ]
+    source_urls = frame["source_url"] if "source_url" in frame.columns else pd.Series("", index=frame.index)
     result = pd.DataFrame(
         {
             "poll_id": frame["poll_id"],
@@ -53,7 +56,7 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
             "undecided_share": 0.0,
             "scope": "national",
             "uf": "BR",
-            "source_url": frame.get("source_url", ""),
+            "source_url": source_urls,
         }
     )
     return result.dropna(subset=["share"]).drop_duplicates(["poll_id", "candidate_id"]).reset_index(drop=True)
