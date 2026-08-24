@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 
 from app.data.candidate_identity import canonical_candidate
+from app.data.geography import BRAZIL_UF_SET
 from app.data.historical_snapshots import build_snapshots
 from app.data.historical_state_priors import build_state_priors
 from app.services.hierarchical_polls import PollPosterior, fit_hierarchical_poll_model
@@ -25,6 +26,8 @@ def _candidate_frame(polls: pd.DataFrame) -> pd.DataFrame:
 
 def _actual_selected(results: pd.DataFrame, candidate_names: list[str], round_number: int = 1) -> pd.DataFrame:
     frame = results[pd.to_numeric(results["round"], errors="coerce") == round_number].copy()
+    frame["uf"] = frame["uf"].astype(str).str.upper().str.strip()
+    frame = frame[frame["uf"].isin(BRAZIL_UF_SET)].copy()
     frame["canonical"] = frame["candidate_name"].map(canonical_candidate)
     wanted = {canonical_candidate(name) for name in candidate_names}
     frame = frame[frame["canonical"].isin(wanted)].copy()
@@ -83,7 +86,7 @@ def _posterior_records(
 
     append_geo("BR", posterior.national_draws, "national")
     for state_index, uf in enumerate(posterior.state_ids):
-        if uf == "BR":
+        if uf not in BRAZIL_UF_SET:
             continue
         append_geo(uf, posterior.state_draws[:, state_index, :], "state")
     return records
@@ -118,7 +121,7 @@ def _snapshot_metrics(frame: pd.DataFrame) -> pd.DataFrame:
 
 def _state_metrics(frame: pd.DataFrame) -> pd.DataFrame:
     states = _scored(frame)
-    states = states[states["level"] == "state"].copy()
+    states = states[(states["level"] == "state") & states["uf"].isin(BRAZIL_UF_SET)].copy()
     if states.empty:
         return pd.DataFrame()
     rows: list[dict[str, object]] = []
