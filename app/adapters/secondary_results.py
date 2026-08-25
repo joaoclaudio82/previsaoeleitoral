@@ -16,22 +16,10 @@ STATE_TO_UF = {
 }
 
 RESULT_CONFIG = {
-    2010: {
-        "url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2010",
-        "candidates": [("Dilma", "PT"), ("Serra", "PSDB"), ("Marina", "PV")],
-    },
-    2014: {
-        "url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014",
-        "candidates": [("Dilma", "PT"), ("Aecio", "PSDB"), ("Marina", "PSB")],
-    },
-    2018: {
-        "url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2018",
-        "candidates": [("Bolsonaro", "PSL"), ("Haddad", "PT"), ("Ciro", "PDT"), ("Alckmin", "PSDB"), ("Amoedo", "NOVO")],
-    },
-    2022: {
-        "url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2022",
-        "candidates": [("Lula", "PT"), ("Bolsonaro", "PL"), ("Tebet", "MDB"), ("Ciro", "PDT")],
-    },
+    2010: {"url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2010", "candidates": [("Dilma", "Dilma Rousseff", "PT"), ("Serra", "José Serra", "PSDB"), ("Marina", "Marina Silva", "PV")]},
+    2014: {"url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014", "candidates": [("Dilma", "Dilma Rousseff", "PT"), ("Aecio", "Aécio Neves", "PSDB"), ("Marina", "Marina Silva", "PSB")]},
+    2018: {"url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2018", "candidates": [("Bolsonaro", "Jair Bolsonaro", "PSL"), ("Haddad", "Fernando Haddad", "PT"), ("Ciro", "Ciro Gomes", "PDT"), ("Alckmin", "Geraldo Alckmin", "PSDB"), ("Amoedo", "João Amoêdo", "NOVO")]},
+    2022: {"url": "https://pt.wikipedia.org/wiki/Resultados_da_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2022", "candidates": [("Lula", "Lula", "PT"), ("Bolsonaro", "Jair Bolsonaro", "PL"), ("Tebet", "Simone Tebet", "MDB"), ("Ciro", "Ciro Gomes", "PDT")]},
 }
 
 
@@ -103,10 +91,10 @@ def load_secondary_state_results(year: int) -> pd.DataFrame:
         if state_col is None:
             continue
         candidate_columns = []
-        for token, party in config["candidates"]:
+        for token, candidate_name, party in config["candidates"]:
             column = _candidate_vote_column(frame, token)
             if column is not None:
-                candidate_columns.append((token, party, column))
+                candidate_columns.append((candidate_name, party, column))
         if len(candidate_columns) < 2:
             continue
         rows = []
@@ -114,11 +102,11 @@ def load_secondary_state_results(year: int) -> pd.DataFrame:
             uf = STATE_TO_UF.get(_fold(source[state_col]))
             if uf is None:
                 continue
-            for candidate, party, column in candidate_columns:
+            for candidate_name, party, column in candidate_columns:
                 value = _numeric(pd.Series([source[column]])).iloc[0]
                 if pd.isna(value) or value <= 0:
                     continue
-                rows.append({"year": year, "round": 1, "uf": uf, "candidate_name": candidate, "party": party, "votes": int(round(value))})
+                rows.append({"year": year, "round": 1, "uf": uf, "candidate_name": candidate_name, "party": party, "votes": int(round(value))})
         if len({row["uf"] for row in rows}) >= 20:
             result = pd.DataFrame(rows)
             result["vote_share"] = result["votes"] / result.groupby(["year", "round", "uf"])["votes"].transform("sum")
