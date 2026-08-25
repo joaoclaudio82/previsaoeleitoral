@@ -24,7 +24,11 @@ jobs:
           pip install ruff
       - name: Compile sources
         run: python -m compileall -q app scripts tests
-      - name: Lint
+      - name: Lint correctness
         run: ruff check app scripts tests
+      - name: Generate reproducible synthetic fixtures
+        run: |
+          python scripts/generate_demo_data.py
+          python scripts/train.py
       - name: Test
         run: pytest -q
