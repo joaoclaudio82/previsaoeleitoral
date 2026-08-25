@@ -11,11 +11,18 @@ on:
         description: Space separated scoreable election years
         required: false
         default: "2014 2018 2022"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/historical-backtest.yml"
 
 jobs:
   backtest:
     runs-on: ubuntu-latest
     timeout-minutes: 120
+    env:
+      BACKTEST_DRAWS: ${{ inputs.draws || '3000' }}
+      BACKTEST_YEARS: ${{ inputs.years || '2014 2018 2022' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,13 +37,21 @@ jobs:
         run: python scripts/fetch_historical_data.py --years 2010 2014 2018 2022
       - name: Run leakage-safe backtests
         shell: bash
-        run: |
-          python scripts/run_historical_backtest.py \
-            --years ${{ inputs.years }} \
-            --draws ${{ inputs.draws }}
-      - name: Publish report artifact
+        run: python scripts/run_historical_backtest.py --years $BACKTEST_YEARS --draws $BACKTEST_DRAWS
+      - name: Run baselines and ablation study
+        shell: bash
+        run: python scripts/run_model_comparison.py --years $BACKTEST_YEARS --draws $BACKTEST_DRAWS
+      - name: Generate publication figures
+        run: python scripts/generate_paper_figures.py
+      - name: Populate paper with empirical results
+        run: python scripts/build_paper_draft.py
+      - name: Publish research artifact
         uses: actions/upload-artifact@v4
         with:
-          name: electionai-historical-backtest-${{ github.run_id }}
-          path: reports/historical_backtest/
+          name: electionai-research-results-${{ github.run_id }}
+          path: |
+            reports/historical_backtest/
+            reports/model_comparison/
+            paper/figures/
+            paper/generated/
           retention-days: 30
