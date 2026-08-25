@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.adapters.historical_polls import load_historical_polls
+from app.adapters.secondary_results import RESULT_CONFIG, load_secondary_state_results
 from app.adapters.tse_historical import discover_presidential_results, discover_turnout, download_verified, extract_if_archive
 from app.data.historical_manifest import get_election
 from app.data.historical_results import normalize_presidential_results, normalize_turnout, read_tse_csv
@@ -34,9 +35,21 @@ def _parse_candidate_files(paths: list[Path], year: int) -> pd.DataFrame:
     if not frames:
         raise RuntimeError(f"No presidential TSE result file could be normalized for {year}: {errors[:5]}")
     result = pd.concat(frames, ignore_index=True).drop_duplicates()
-    return result.groupby(["year", "round", "uf", "candidate_name", "party"], as_index=False)["votes"].sum().assign(
-        vote_share=lambda df: df["votes"] / df.groupby(["year", "round", "uf"])["votes"].transform("sum")
-    )
+    return result.groupby(["year", "round", "uf", "candidate_name", "party"], as_index=False)["votes"].sum().assign(vote_share=lambda df: df["votes"] / df.groupby(["year", "round", "uf"])["votes"].transform("sum"))
+
+
+def _load_results(year: int, raw_dir: Path, manifest: dict[str, object]) -> pd.DataFrame:
+    try:
+        resource = discover_presidential_results(year)
+        downloaded = download_verified(resource, raw_dir)
+        extracted = extract_if_archive(downloaded, raw_dir / "results_extracted")
+        results = _parse_candidate_files(extracted, year)
+        manifest["sources"].append({"kind": "tse_results", "url": downloaded.source_url, "sha256": downloaded.sha256, "resource_name": downloaded.resource_name, "status": "primary"})
+        return results
+    except Exception as exc:
+        results = load_secondary_state_results(year)
+        manifest["sources"].append({"kind": "secondary_result_table", "url": RESULT_CONFIG[year]["url"], "status": "fallback", "primary_error": type(exc).__name__, "note": "Candidate vote counts are reproduced from a public table that cites TSE results; replace with primary TSE archive when network access permits."})
+        return results
 
 
 def fetch_year(year: int, root: Path, include_polls: bool = True, include_turnout: bool = True) -> dict[str, object]:
@@ -47,22 +60,14 @@ def fetch_year(year: int, root: Path, include_polls: bool = True, include_turnou
     raw_dir.mkdir(parents=True, exist_ok=True)
     processed_dir.mkdir(parents=True, exist_ok=True)
     manifest: dict[str, object] = {"year": year, "first_round_date": election.first_round_date.isoformat(), "sources": []}
-
-    resource = discover_presidential_results(year)
-    downloaded = download_verified(resource, raw_dir)
-    extracted = extract_if_archive(downloaded, raw_dir / "results_extracted")
-    results = _parse_candidate_files(extracted, year)
-    result_path = processed_dir / "presidential_results.csv"
-    results.to_csv(result_path, index=False)
-    manifest["sources"].append({"kind": "tse_results", "url": downloaded.source_url, "sha256": downloaded.sha256, "resource_name": downloaded.resource_name})
+    results = _load_results(year, raw_dir, manifest)
+    results.to_csv(processed_dir / "presidential_results.csv", index=False)
 
     if include_polls and election.polling_page:
         published = load_historical_polls(year, round_number=1)
-        published_path = processed_dir / "published_polls_raw.csv"
-        published.to_csv(published_path, index=False)
+        published.to_csv(processed_dir / "published_polls_raw.csv", index=False)
         model_polls = to_model_poll_schema(published)
-        model_path = processed_dir / "polls_model_schema.csv"
-        model_polls.to_csv(model_path, index=False)
+        model_polls.to_csv(processed_dir / "polls_model_schema.csv", index=False)
         manifest["sources"].append({"kind": "published_poll_table", "url": election.polling_page, "rows": len(published)})
 
     if include_turnout and election.tse_turnout_package:
