@@ -284,9 +284,11 @@ def fit_hierarchical_poll_model(
     x, columns, prior_precision = _build_design(meta, as_of_date, state_ids)
     age = np.array([(as_of_date - value).days for value in meta["field_date"]], dtype=float)
     recency = np.exp(-math.log(2) * np.maximum(age, 0) / half_life_days)
-    sample = np.sqrt(meta["sample_size"].to_numpy(dtype=float) / 1_000.0)
     sampling_sigma = np.maximum(meta["margin_error"].to_numpy(dtype=float) / 1.96 / 10.0, 0.08)
-    base_weights = recency * sample / np.square(sampling_sigma)
+    # margin_error already scales approximately as 1/sqrt(n). Multiplying again by a
+    # sample-size factor would count the same sampling information twice and make
+    # large polls unrealistically dominant. We therefore use recency × inverse variance.
+    base_weights = recency / np.square(sampling_sigma)
     if calibration:
         calibration_penalty = np.array([
             1.0 / max(calibration.prior_variance(r.institute, r.collection_mode, r.target_population), 0.05)
@@ -329,63 +331,36 @@ def fit_hierarchical_poll_model(
     previous_x[1] = -1.0
     current_mean_support = _softmax_alr((current_x @ beta)[None, :])[0]
     previous_mean_support = _softmax_alr((previous_x @ beta)[None, :])[0]
-    trend_14d = current_mean_support - previous_mean_support
 
-    national_records = []
-    for idx, (cid, cname) in enumerate(zip(candidate_ids, candidate_names)):
-        values = national_draws[:, idx]
-        national_records.append({
-            "candidate_id": cid,
-            "candidate_name": cname,
-            "poll_mean": float(values.mean()),
-            "poll_lower": float(np.quantile(values, 0.05)),
-            "poll_upper": float(np.quantile(values, 0.95)),
-            "poll_uncertainty": float(values.std(ddof=1)),
-            "poll_trend_14d": float(trend_14d[idx]),
-            "poll_count": int(meta["poll_id"].nunique()),
-        })
-    national_summary = pd.DataFrame(national_records).sort_values("poll_mean", ascending=False).reset_index(drop=True)
-
-    state_records: list[dict] = []
+    national_summary = pd.DataFrame({
+        "candidate_id": candidate_ids, "candidate_name": candidate_names,
+        "mean_share": national_draws.mean(axis=0),
+        "median_share": np.median(national_draws, axis=0),
+        "lower": np.quantile(national_draws, 0.05, axis=0),
+        "upper": np.quantile(national_draws, 0.95, axis=0),
+        "win_probability": [float(np.mean(np.argmax(national_draws, axis=1) == i)) for i in range(len(candidate_ids))],
+        "momentum": current_mean_support - previous_mean_support,
+    })
+    state_rows = []
     for state_index, uf in enumerate(effective_states):
-        for candidate_index, (cid, cname) in enumerate(zip(candidate_ids, candidate_names)):
-            values = state_draws[:, state_index, candidate_index]
-            state_records.append({
-                "uf": uf,
-                "candidate_id": cid,
-                "candidate_name": cname,
-                "poll_mean": float(values.mean()),
-                "poll_lower": float(np.quantile(values, 0.05)),
-                "poll_upper": float(np.quantile(values, 0.95)),
-                "undecided_mean": float(undecided_state_draws[:, state_index].mean()),
+        draws = state_draws[:, state_index, :]
+        for candidate_index, (candidate_id, candidate_name) in enumerate(zip(candidate_ids, candidate_names)):
+            values = draws[:, candidate_index]
+            state_rows.append({
+                "uf": uf, "candidate_id": candidate_id, "candidate_name": candidate_name,
+                "mean_share": float(values.mean()), "median_share": float(np.median(values)),
+                "lower": float(np.quantile(values, 0.05)), "upper": float(np.quantile(values, 0.95)),
+                "win_probability": float(np.mean(np.argmax(draws, axis=1) == candidate_index)),
             })
-    state_summary = pd.DataFrame(state_records)
-
-    reliability_rows = []
-    for institute, multiplier in sorted(reliability.items()):
-        count = int(meta.loc[meta["institute"].astype(str) == institute, "poll_id"].nunique())
-        prior_score = calibration.quality_score(institute) if calibration else 1.0
-        reliability_rows.append({
-            "institute": institute,
-            "posterior_precision_multiplier": float(multiplier),
-            "historical_quality_score": float(prior_score),
-            "poll_count": count,
-        })
-    reliability_frame = pd.DataFrame(reliability_rows)
-    std = np.sqrt(np.clip(np.diag(covariance), 1e-12, None))
-    correlation = covariance / np.outer(std, std)
-
+    institute_rows = []
+    for institute, value in sorted(reliability.items()):
+        institute_rows.append({"institute": institute, "reliability_weight": value})
     diagnostics = {
-        "model": "closed_form_matrix_normal_hierarchical_bayes",
-        "candidate_dimensions": len(candidate_ids) - 1,
-        "design_parameters": len(columns),
+        "n_polls": int(meta["poll_id"].nunique()),
+        "n_rows": int(len(meta)),
+        "state_count": len(state_ids),
         "posterior_draws": n_draws,
-        "state_count": len(effective_states),
-        "uses_external_institute_quality": False,
-        "hierarchical_effects": ["institute", "collection_mode", "target_population", "uf"],
-        "undecided_modeled": True,
-        "correlated_candidate_error": True,
-        "correlated_institute_error": True,
+        "weighting": "recency_times_inverse_reported_sampling_variance",
     }
     return PollPosterior(
         candidate_ids=candidate_ids,
@@ -395,9 +370,9 @@ def fit_hierarchical_poll_model(
         state_draws=state_draws,
         undecided_state_draws=undecided_state_draws,
         national_summary=national_summary,
-        state_summary=state_summary,
-        institute_reliability=reliability_frame,
+        state_summary=pd.DataFrame(state_rows),
+        institute_reliability=pd.DataFrame(institute_rows),
         residual_covariance=covariance,
-        residual_correlation=correlation,
+        residual_correlation=np.corrcoef(covariance),
         diagnostics=diagnostics,
     )
