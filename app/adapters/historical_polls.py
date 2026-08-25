@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import io
 import re
 import unicodedata
 from datetime import date
 from typing import Iterable
 
-import httpx
 import pandas as pd
 
+from app.adapters.wikimedia import fetch_tables
 from app.data.historical_manifest import get_election
 
 
@@ -85,14 +84,8 @@ def _find_column(columns: Iterable[str], *tokens: str) -> str | None:
     return None
 
 
-def _read_tables(url: str) -> list[pd.DataFrame]:
-    response = httpx.get(url, follow_redirects=True, timeout=60.0, headers={"User-Agent": "ElectionAI-research/0.3 (academic historical election forecasting; contact via GitHub)"})
-    response.raise_for_status()
-    return pd.read_html(io.StringIO(response.text), flavor="lxml")
-
-
 def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFrame:
-    tables = _read_tables(url)
+    tables = fetch_tables(url)
     rows: list[dict[str, object]] = []
     minimum_candidates = 3 if round_number == 1 else 2
     for table_index, raw in enumerate(tables):
