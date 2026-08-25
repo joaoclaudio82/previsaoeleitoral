@@ -1,4 +1,5 @@
 from fastapi.testclient import TestClient
+
 from app.api.main import app
 
 
@@ -6,7 +7,7 @@ def test_health():
     response = TestClient(app).get("/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["version"] == "0.2.0"
+    assert response.json()["version"] == "0.3.0"
 
 
 def test_synthetic_api_response_never_exposes_likely_winner():
