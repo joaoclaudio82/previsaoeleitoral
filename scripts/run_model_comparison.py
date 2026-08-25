@@ -76,17 +76,22 @@ def _metrics(frame: pd.DataFrame) -> pd.DataFrame:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Compare ElectionAI with polling baselines and state-prior ablations")
     parser.add_argument("--years", nargs="+", type=int, default=[2014, 2018, 2022])
+    parser.add_argument("--offsets", nargs="+", type=int, default=[15, 7, 3, 1], help="Common stable-slate forecast horizons")
     parser.add_argument("--data-root", type=Path, default=Path("data/historical"))
     parser.add_argument("--output", type=Path, default=Path("reports/model_comparison"))
     parser.add_argument("--draws", type=int, default=3000)
     parser.add_argument("--seed", type=int, default=2026)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+    offsets = tuple(dict.fromkeys(int(value) for value in args.offsets if int(value) > 0))
+    if not offsets:
+        raise ValueError("At least one positive historical offset is required")
+
     rows: list[dict[str, object]] = []
     for year in args.years:
         election = get_election(year)
         polls, results = _load_year(args.data_root, year)
-        snapshots = build_snapshots(polls, election.first_round_date)
+        snapshots = build_snapshots(polls, election.first_round_date, offsets=offsets)
         previous_year = max((candidate for candidate in (2010, 2014, 2018) if candidate < year), default=None)
         previous_results = None
         if previous_year is not None:
@@ -95,7 +100,8 @@ def main() -> int:
                 previous_results = pd.read_csv(path)
         for snap_index, (days, snapshot) in enumerate(sorted(snapshots.items(), reverse=True)):
             snapshot_date = election.first_round_date - timedelta(days=days)
-            candidates = snapshot[["candidate_id", "candidate_name"]].drop_duplicates().sort_values("candidate_id")
+            candidate_columns = ["candidate_id", "candidate_name"] + (["party"] if "party" in snapshot.columns else [])
+            candidates = snapshot[candidate_columns].drop_duplicates().sort_values("candidate_id")
             actual = _actual_lookup(results, candidates["candidate_name"].tolist())
             scorable = election.scoring_start_date is None or snapshot_date >= election.scoring_start_date
             for method_index, method in enumerate(BASELINES):
@@ -104,12 +110,13 @@ def main() -> int:
             national = fit_hierarchical_poll_model(snapshot, snapshot_date, state_priors=None, calibration=None, n_draws=args.draws, seed=args.seed + year + snap_index * 10 + 7)
             rows.extend(_records_from_draws(national.national_draws / 100.0, national.candidate_ids, national.candidate_names, actual, model="hierarchical_national", year=year, days=days, snapshot_date=snapshot_date.isoformat(), scorable=scorable))
         if previous_results is not None:
-            full = run_historical_backtest(polls, results, election.first_round_date, election_year=year, previous_results=previous_results, scoring_start_date=election.scoring_start_date, posterior_draws=args.draws, seed=args.seed + year + 100).forecasts
+            full = run_historical_backtest(polls, results, election.first_round_date, election_year=year, previous_results=previous_results, scoring_start_date=election.scoring_start_date, offsets=offsets, posterior_draws=args.draws, seed=args.seed + year + 100).forecasts
             full["model"] = "electionai_full"
             rows.extend(full.to_dict("records"))
             for snap_index, (days, snapshot) in enumerate(sorted(snapshots.items(), reverse=True)):
                 snapshot_date = election.first_round_date - timedelta(days=days)
-                candidates = snapshot[["candidate_id", "candidate_name"]].drop_duplicates().sort_values("candidate_id")
+                candidate_columns = ["candidate_id", "candidate_name"] + (["party"] if "party" in snapshot.columns else [])
+                candidates = snapshot[candidate_columns].drop_duplicates().sort_values("candidate_id")
                 neutral = _neutral_state_priors(previous_results, candidates)
                 posterior = fit_hierarchical_poll_model(snapshot, snapshot_date, state_priors=neutral, calibration=None, n_draws=args.draws, seed=args.seed + year + snap_index * 10 + 8)
                 actual_state = results[pd.to_numeric(results["round"], errors="coerce") == 1].copy()
