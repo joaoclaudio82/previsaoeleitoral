@@ -10,6 +10,7 @@ from app.data.candidate_identity import canonical_candidate
 from app.data.geography import BRAZIL_UF_SET
 from app.data.historical_snapshots import build_snapshots
 from app.data.historical_state_priors import build_state_priors
+from app.ml.posterior_predictive import add_correlated_predictive_error
 from app.services.hierarchical_polls import PollPosterior, fit_hierarchical_poll_model
 
 
@@ -177,6 +178,15 @@ def run_historical_backtest(
             n_draws=posterior_draws,
             seed=seed + index,
         )
+        predictive_national, predictive_states = add_correlated_predictive_error(
+            posterior.national_draws,
+            posterior.state_draws,
+            posterior.residual_covariance,
+            seed=seed + election_year * 100 + index,
+        )
+        posterior.national_draws = predictive_national
+        posterior.state_draws = predictive_states
+        posterior.diagnostics["posterior_predictive_error"] = "snapshot_residual_covariance"
         records.extend(
             _posterior_records(
                 posterior,
