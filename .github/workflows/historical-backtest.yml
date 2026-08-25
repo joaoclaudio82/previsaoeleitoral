@@ -1,4 +1,4 @@
-# ElectionAI v0.3 reproducible historical research pipeline (HTTP table fetchers)
+# ElectionAI v0.3 reproducible historical research pipeline (Wikimedia REST fallback)
 name: historical-backtest
 
 on:
