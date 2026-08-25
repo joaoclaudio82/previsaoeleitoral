@@ -84,8 +84,8 @@ def fetch_year(year: int, root: Path, include_polls: bool = True, include_turnou
                 turnout["turnout_rate"] = turnout["present"] / turnout["eligible"].where(turnout["eligible"] > 0)
                 turnout.to_csv(processed_dir / "turnout.csv", index=False)
                 manifest["sources"].append({"kind": "tse_turnout", "url": turnout_download.source_url, "sha256": turnout_download.sha256})
-        except LookupError:
-            pass
+        except Exception as exc:
+            manifest["sources"].append({"kind": "tse_turnout", "status": "unavailable", "error": type(exc).__name__})
 
     (year_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
