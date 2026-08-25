@@ -1,28 +1,19 @@
 from __future__ import annotations
 
+import io
 import re
 import unicodedata
 from datetime import date
 from typing import Iterable
 
+import httpx
 import pandas as pd
 
 from app.data.historical_manifest import get_election
 
 
-NON_CANDIDATE_TOKENS = {
-    "polling firm", "publisher/pollster", "pollster", "date", "date(s) administered",
-    "polling period", "sample size", "sample", "lead", "others", "other",
-    "blank/null/undec.", "blank/null/undec", "undecided", "abst.", "abstention",
-    "results", "result", "source", "margin of error",
-    "instituto", "data", "periodo", "periodo da pesquisa", "amostra", "margem de erro",
-    "branco", "nulo", "indeciso", "nao sabe", "nenhum", "outros", "resultado",
-}
-
-PT_MONTHS = {
-    "janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4, "maio": 5, "junho": 6,
-    "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12,
-}
+NON_CANDIDATE_TOKENS = {"polling firm", "publisher/pollster", "pollster", "date", "date(s) administered", "polling period", "sample size", "sample", "lead", "others", "other", "blank/null/undec.", "blank/null/undec", "undecided", "abst.", "abstention", "results", "result", "source", "margin of error", "instituto", "data", "periodo", "periodo da pesquisa", "amostra", "margem de erro", "branco", "nulo", "indeciso", "nao sabe", "nenhum", "outros", "resultado"}
+PT_MONTHS = {"janeiro": 1, "fevereiro": 2, "marco": 3, "abril": 4, "maio": 5, "junho": 6, "julho": 7, "agosto": 8, "setembro": 9, "outubro": 10, "novembro": 11, "dezembro": 12}
 
 
 def _fold(value: object) -> str:
@@ -66,13 +57,7 @@ def _poll_end_date(value: object, year: int) -> date | None:
     pt_match = re.search(r"(?:\d{1,2}\s*(?:-|a)\s*)?(\d{1,2})\s+de\s+([a-z]+)(?:\s+de\s+(\d{4}))?", folded)
     if pt_match and pt_match.group(2) in PT_MONTHS:
         return date(int(pt_match.group(3) or year), PT_MONTHS[pt_match.group(2)], int(pt_match.group(1)))
-    month_match = re.search(
-        r"(?:\d{1,2}\s*[-/]\s*)?(\d{1,2})\s+"
-        r"(January|February|March|April|May|June|July|August|September|October|November|December)"
-        r"(?:\s+(\d{4}))?",
-        text,
-        flags=re.IGNORECASE,
-    )
+    month_match = re.search(r"(?:\d{1,2}\s*[-/]\s*)?(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)(?:\s+(\d{4}))?", text, flags=re.IGNORECASE)
     if month_match:
         day = int(month_match.group(1))
         month = pd.to_datetime(month_match.group(2), format="%B").month
@@ -100,8 +85,14 @@ def _find_column(columns: Iterable[str], *tokens: str) -> str | None:
     return None
 
 
+def _read_tables(url: str) -> list[pd.DataFrame]:
+    response = httpx.get(url, follow_redirects=True, timeout=60.0, headers={"User-Agent": "ElectionAI-research/0.3 (academic historical election forecasting; contact via GitHub)"})
+    response.raise_for_status()
+    return pd.read_html(io.StringIO(response.text), flavor="lxml")
+
+
 def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFrame:
-    tables = pd.read_html(url, flavor="lxml")
+    tables = _read_tables(url)
     rows: list[dict[str, object]] = []
     minimum_candidates = 3 if round_number == 1 else 2
     for table_index, raw in enumerate(tables):
@@ -132,21 +123,7 @@ def extract_poll_tables(url: str, year: int, round_number: int = 1) -> pd.DataFr
                 if share is None:
                     continue
                 candidate_name = str(candidate_col).split(" | ")[-1].strip()
-                rows.append(
-                    {
-                        "year": year,
-                        "round": round_number,
-                        "poll_date": poll_date.isoformat(),
-                        "pollster": pollster,
-                        "sample_size": sample_size,
-                        "candidate_name": candidate_name,
-                        "share": share,
-                        "scope": "BR",
-                        "source_url": url,
-                        "source_table": table_index,
-                        "source_kind": "published_poll_table",
-                    }
-                )
+                rows.append({"year": year, "round": round_number, "poll_date": poll_date.isoformat(), "pollster": pollster, "sample_size": sample_size, "candidate_name": candidate_name, "share": share, "scope": "BR", "source_url": url, "source_table": table_index, "source_kind": "published_poll_table"})
     if not rows:
         raise ValueError(f"No polling tables could be parsed from {url}")
     return pd.DataFrame(rows).drop_duplicates().sort_values(["poll_date", "pollster", "candidate_name"]).reset_index(drop=True)
