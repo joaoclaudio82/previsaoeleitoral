@@ -1,0 +1,28 @@
+year,poll_date,pollster,sample_size,margin_error,dilma,marina,aecio,others,undecided_share,source_table,source_url
+2014,2014-08-24,CNT/MDA,,2.2,34.2,28.2,16.0,2.5,19.1,0,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-08-25,Ibope,,2.0,34.0,29.0,19.0,2.0,15.0,1,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-08-29,Datafolha,,2.0,34.0,34.0,15.0,2.0,17.0,2,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-03,Ibope,,2.0,37.0,33.0,15.0,1.0,12.0,3,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-03,Datafolha,,2.0,35.0,34.0,14.0,4.0,13.0,4,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-07,CNT/MDA,,2.2,38.1,33.5,14.7,1.0,11.6,5,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-08,Ibope,,2.0,39.0,31.0,15.0,1.0,13.0,6,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-09,Vox Populi,,2.2,36.0,28.0,15.0,1.0,20.0,7,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-09,Datafolha,,2.0,36.0,33.0,15.0,3.0,13.0,8,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-14,Vox Populi,,2.2,36.0,27.0,15.0,2.0,20.0,9,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-15,Ibope,,2.0,36.0,30.0,19.0,1.0,13.0,10,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-18,Datafolha,,2.0,37.0,30.0,17.0,3.0,13.0,11,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-21,CNT/MDA,,2.2,36.0,27.4,17.6,1.7,16.5,12,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-21,Vox Populi,,2.2,40.0,22.0,17.0,2.0,18.0,13,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-22,Ibope,,2.0,38.0,29.0,19.0,1.0,12.0,14,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-24,Vox Populi,,2.2,38.0,25.0,17.0,1.0,18.0,15,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-26,Datafolha,,2.0,40.0,27.0,18.0,3.0,11.0,16,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-28,CNT/MDA,,2.2,40.4,25.2,19.8,1.8,12.3,17,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-28,Vox Populi,,2.2,40.0,24.0,18.0,2.0,17.0,18,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-29,Ibope,,2.0,39.0,25.0,19.0,2.0,14.0,19,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-09-30,Datafolha,,2.0,40.0,25.0,20.0,2.0,10.0,20,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-01,Ibope,,2.0,40.0,24.0,19.0,2.0,15.0,21,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-02,Datafolha,,2.0,40.0,24.0,21.0,3.0,10.0,22,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-03,CNT/MDA,,2.2,40.6,21.4,24.0,2.4,11.0,23,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-04,Vox Populi,,2.0,41.0,20.0,23.0,3.0,12.0,24,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-04,Datafolha,,2.0,40.0,22.0,24.0,3.0,9.0,25,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
+2014,2014-10-04,Ibope,,2.0,40.0,21.0,24.0,3.0,12.0,26,https://pt.wikipedia.org/wiki/Pesquisas_de_opini%C3%A3o_para_a_elei%C3%A7%C3%A3o_presidencial_no_Brasil_em_2014
