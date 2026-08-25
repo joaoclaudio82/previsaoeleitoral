@@ -4,7 +4,9 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
+from app.agents.schemas import AgentScenario
 from app.ml.transfer import TransferModel
+from app.services.agent_scenarios import scenario_diagnostics, validate_agent_scenario
 from app.services.hierarchical_polls import PollPosterior
 
 
@@ -45,6 +47,62 @@ def _fallback_pair_probabilities(
     return result
 
 
+def _apply_agent_scenario(
+    *,
+    state_support: np.ndarray,
+    undecided: np.ndarray,
+    turnout_draws: np.ndarray,
+    posterior: PollPosterior,
+    scenario: AgentScenario,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, dict]:
+    """Inject uncertain social shocks into each Monte Carlo draw.
+
+    Candidate effects are additive percentage-point shocks before undecided-voter
+    allocation. State effects alter turnout in fractional units and undecided share
+    in percentage points. Shares are renormalized after candidate shocks, keeping
+    the electoral simplex valid in every draw.
+    """
+    validate_agent_scenario(
+        scenario,
+        candidate_ids=posterior.candidate_ids,
+        state_ids=posterior.state_ids,
+    )
+    candidate_index = {candidate_id: index for index, candidate_id in enumerate(posterior.candidate_ids)}
+    state_index = {uf: index for index, uf in enumerate(posterior.state_ids)}
+
+    support = state_support.copy()
+    undecided_out = undecided.copy()
+    turnout_out = np.asarray(turnout_draws, dtype=float).copy()
+
+    for shock in scenario.candidate_shocks:
+        draws = rng.normal(shock.vote_shift_mean, shock.vote_shift_sd, support.shape[0])
+        support[:, state_index[shock.uf], candidate_index[shock.candidate_id]] += draws
+
+    support = np.clip(support, 0.01, None)
+    support /= support.sum(axis=2, keepdims=True)
+    support *= 100.0
+
+    for shock in scenario.state_shocks:
+        idx = state_index[shock.uf]
+        turnout_out[:, idx] += rng.normal(
+            shock.turnout_shift_mean,
+            shock.turnout_shift_sd,
+            turnout_out.shape[0],
+        )
+        undecided_out[:, idx] += rng.normal(
+            shock.undecided_shift_mean / 100.0,
+            shock.undecided_shift_sd / 100.0,
+            undecided_out.shape[0],
+        )
+
+    turnout_out = np.clip(turnout_out, 0.35, 0.95)
+    undecided_out = np.clip(undecided_out, 0.0, 0.60)
+    diagnostics = scenario_diagnostics(scenario)
+    diagnostics["injection_stage"] = "state_support_before_undecided_allocation"
+    return support, undecided_out, turnout_out, diagnostics
+
+
 def simulate_election(
     posterior: PollPosterior,
     fundamentals: pd.DataFrame,
@@ -53,6 +111,7 @@ def simulate_election(
     n_simulations: int,
     seed: int,
     transfer_model: TransferModel | None = None,
+    agent_scenario: AgentScenario | None = None,
 ) -> SimulationOutput:
     ids = posterior.candidate_ids
     names = posterior.candidate_names
@@ -75,10 +134,22 @@ def simulate_election(
     draw_indices = rng.integers(0, posterior.state_draws.shape[0], size=n_simulations)
     state_support = posterior.state_draws[draw_indices].copy()
     undecided = np.clip(posterior.undecided_state_draws[draw_indices] / 100.0, 0.0, 0.60)
+    effective_turnout_draws = np.asarray(turnout_draws, dtype=float).copy()
 
     prior_factor = np.exp((ml_probs - 1.0 / k) * 0.20)
     state_support *= prior_factor[None, None, :]
     state_support = state_support / state_support.sum(axis=2, keepdims=True) * 100.0
+
+    agent_diagnostics: dict | None = None
+    if agent_scenario is not None:
+        state_support, undecided, effective_turnout_draws, agent_diagnostics = _apply_agent_scenario(
+            state_support=state_support,
+            undecided=undecided,
+            turnout_draws=effective_turnout_draws,
+            posterior=posterior,
+            scenario=agent_scenario,
+            rng=rng,
+        )
 
     propensity = np.clip(state_support / 100.0, 1e-5, None)
     propensity *= np.exp(late_score[None, None, :] + (50.0 - rejection)[None, None, :] / 140.0)
@@ -90,7 +161,7 @@ def simulate_election(
     final_state_share /= final_state_share.sum(axis=2, keepdims=True)
 
     electorate = np.asarray(registered_voters, dtype=float)[None, :, None]
-    turnout = np.clip(turnout_draws, 0.35, 0.95)[:, :, None]
+    turnout = np.clip(effective_turnout_draws, 0.35, 0.95)[:, :, None]
     state_votes = final_state_share * electorate * turnout
     national_votes = state_votes.sum(axis=1)
     first_round = national_votes / national_votes.sum(axis=1, keepdims=True) * 100.0
@@ -144,13 +215,13 @@ def simulate_election(
     candidate_frame = pd.DataFrame(candidate_rows).sort_values("win_probability", ascending=False).reset_index(drop=True)
 
     state_rows: list[dict] = []
-    for state_index, uf in enumerate(posterior.state_ids):
-        shares = final_state_share[:, state_index, :] * 100.0
+    for state_index_value, uf in enumerate(posterior.state_ids):
+        shares = final_state_share[:, state_index_value, :] * 100.0
         state_leaders = np.argmax(shares, axis=1)
         counts = np.bincount(state_leaders, minlength=k)
         leader_index = int(np.argmax(counts))
         expected = shares.mean(axis=0)
-        turnout_values = turnout_draws[:, state_index]
+        turnout_values = effective_turnout_draws[:, state_index_value]
         state_rows.append({
             "uf": uf,
             "expected_turnout": float(turnout_values.mean()),
@@ -170,5 +241,8 @@ def simulate_election(
         "transfer_matrix_supplied": False,
         "transfer_model": "learned_bayesian_binomial" if transfer_model is not None else "transparent_ideology_rejection_fallback",
         "undecided_allocated_probabilistically": True,
+        "agent_scenario": agent_diagnostics,
+        "agent_layer_enabled": agent_scenario is not None,
+        "agent_layer_experimental": agent_scenario is not None,
     }
     return SimulationOutput(candidate_frame, state_frame, diagnostics)
