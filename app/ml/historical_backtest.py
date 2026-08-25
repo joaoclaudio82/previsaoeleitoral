@@ -21,7 +21,10 @@ class HistoricalBacktestResult:
 
 
 def _candidate_frame(polls: pd.DataFrame) -> pd.DataFrame:
-    return polls[["candidate_id", "candidate_name"]].drop_duplicates().reset_index(drop=True)
+    columns = ["candidate_id", "candidate_name"]
+    if "party" in polls.columns:
+        columns.append("party")
+    return polls[columns].drop_duplicates().reset_index(drop=True)
 
 
 def _actual_selected(results: pd.DataFrame, candidate_names: list[str], round_number: int = 1) -> pd.DataFrame:
