@@ -3,8 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from app.data.historical_manifest import get_election
 from app.ml.calibration_report import calibration_by_group, calibration_slope_intercept, reliability_bins
