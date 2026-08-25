@@ -23,6 +23,7 @@ on:
       - "app/ml/dynamic_polling.py"
       - "app/ml/geographic_baseline.py"
       - "app/ml/posterior_predictive.py"
+      - "app/ml/robustness.py"
       - "app/services/hierarchical_polls.py"
       - "scripts/prepare_frozen_historical.py"
       - "scripts/run_historical_backtest.py"
@@ -33,6 +34,7 @@ on:
       - "scripts/build_paper_draft.py"
       - "tests/test_dynamic_polling.py"
       - "tests/test_geographic_baseline.py"
+      - "tests/test_robustness.py"
       - ".github/workflows/historical-backtest.yml"
 
 jobs:
