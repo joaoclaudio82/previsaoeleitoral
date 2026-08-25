@@ -173,6 +173,7 @@ def run_historical_backtest(
             snapshot_date,
             state_priors=state_priors,
             calibration=None,
+            forecast_date=election_date,
             n_draws=posterior_draws,
             seed=seed + index,
         )
