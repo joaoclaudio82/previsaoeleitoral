@@ -44,6 +44,8 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
 
     party_source = frame["party"] if "party" in frame.columns else pd.Series("UNKNOWN", index=frame.index)
     frame["party"] = party_source.fillna("UNKNOWN").astype(str).str.upper().str.strip()
+    undecided_source = frame["undecided_share"] if "undecided_share" in frame.columns else pd.Series(0.0, index=frame.index)
+    frame["undecided_share"] = pd.to_numeric(undecided_source, errors="coerce").fillna(0.0).clip(lower=0.0, upper=99.0)
     source_tables = frame["source_table"] if "source_table" in frame.columns else pd.Series(0, index=frame.index)
     frame["poll_id"] = [
         _poll_id(int(y), str(p), d.isoformat(), t)
@@ -63,7 +65,7 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
             "margin_error": frame["margin_error"].astype(float),
             "collection_mode": "unknown",
             "target_population": "registered_voters",
-            "undecided_share": 0.0,
+            "undecided_share": frame["undecided_share"].astype(float),
             "scope": "national",
             "uf": "BR",
             "source_url": source_urls,
