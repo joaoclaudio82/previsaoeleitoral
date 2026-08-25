@@ -30,12 +30,17 @@ def _load_year(root: Path, year: int) -> tuple[pd.DataFrame, pd.DataFrame]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run ElectionAI temporal backtests on historical Brazilian elections")
     parser.add_argument("--years", nargs="+", type=int, default=[2014, 2018, 2022])
+    parser.add_argument("--offsets", nargs="+", type=int, default=[15, 7, 3, 1], help="Common forecast horizons in days before election")
     parser.add_argument("--data-root", type=Path, default=Path("data/historical"))
     parser.add_argument("--output", type=Path, default=Path("reports/historical_backtest"))
     parser.add_argument("--draws", type=int, default=4000)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
+
+    offsets = tuple(dict.fromkeys(int(value) for value in args.offsets if int(value) > 0))
+    if not offsets:
+        raise ValueError("At least one positive historical offset is required")
 
     all_forecasts: list[pd.DataFrame] = []
     all_snapshots: list[pd.DataFrame] = []
@@ -56,6 +61,7 @@ def main() -> int:
             election_year=year,
             previous_results=previous_results,
             scoring_start_date=election.scoring_start_date,
+            offsets=offsets,
             posterior_draws=args.draws,
             seed=args.seed + year,
         )
@@ -86,11 +92,12 @@ def main() -> int:
     bins.to_csv(args.output / "reliability_bins.csv", index=False)
     summary = {
         "years": args.years,
+        "offsets": list(offsets),
         "forecast_rows": len(forecasts),
         "scoreable_rows": len(scoreable),
         "posterior_draws": args.draws,
         "calibration": slope,
-        "note": "All snapshots are archived; only post-candidate-slate snapshots enter calibration metrics.",
+        "note": "Common stable-slate horizons are scored without information released after each cutoff.",
     }
     (args.output / "summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     print(json.dumps(summary, indent=2, ensure_ascii=False))
