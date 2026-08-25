@@ -170,10 +170,16 @@ def _build_design(
     return x, columns, 1.0 / np.square(prior_sd)
 
 
-def _target_design(columns: list[tuple[str, str]], state_ids: list[str]) -> np.ndarray:
+def _target_design(
+    columns: list[tuple[str, str]],
+    state_ids: list[str],
+    *,
+    time_value: float = 0.0,
+) -> np.ndarray:
     targets = ["BR", *state_ids]
     x = np.zeros((len(targets), len(columns)), dtype=float)
     x[:, 0] = 1.0
+    x[:, 1] = float(time_value)
     index = {item: i for i, item in enumerate(columns)}
     for row, uf in enumerate(targets):
         key = ("uf", uf)
@@ -269,23 +275,51 @@ def _apply_state_priors(
     candidate_ids: list[str],
     priors: pd.DataFrame | None,
     state_poll_counts: dict[str, int],
+    rng: np.random.Generator,
 ) -> np.ndarray:
     if priors is None or priors.empty:
         return alr_draws
     frame = priors.copy()
+    national_current = alr_draws[:, 0, :].copy()
+    n_draws = alr_draws.shape[0]
+
     for uf_index, uf in enumerate(state_ids, start=1):
         group = frame[frame["uf"].astype(str) == uf]
         if group.empty:
             continue
-        shares = group.set_index("candidate_id").reindex(candidate_ids)["prior_share"].to_numpy(dtype=float)
+        indexed = group.set_index("candidate_id").reindex(candidate_ids)
+        shares = indexed["prior_share"].to_numpy(dtype=float)
         if np.isnan(shares).any() or shares.sum() <= 0:
             continue
-        shares = np.clip(shares / shares.sum(), 1e-5, None)
-        prior_alr = np.log(shares[:-1] / shares[-1])
-        strength = float(group["prior_strength"].mean()) if "prior_strength" in group else 3.0
+        shares = np.clip(shares / shares.sum(), 1e-6, None)
+
+        strength = float(indexed["prior_strength"].mean()) if "prior_strength" in indexed else 3.0
+        if "prior_concentration" in indexed:
+            concentration = float(indexed["prior_concentration"].mean())
+        else:
+            concentration = max(6.0, strength * 20.0)
+        alpha = np.clip(shares * concentration, 0.05, None)
+        prior_composition = rng.dirichlet(alpha, size=n_draws)
+        prior_state_alr = np.log(prior_composition[:, :-1] / prior_composition[:, [-1]])
+
+        if "national_prior_share" in indexed and indexed["national_prior_share"].notna().all():
+            national_prior = indexed["national_prior_share"].to_numpy(dtype=float)
+            national_prior = np.clip(national_prior / national_prior.sum(), 1e-6, None)
+            national_prior_alr = np.log(national_prior[:-1] / national_prior[-1])
+            # Preserve previous-election geography as a *lean* while allowing the
+            # current national level and campaign trend to move freely.
+            prior_target = national_current + (prior_state_alr - national_prior_alr)
+        else:
+            # Backward compatibility for operational priors that encode absolute
+            # state shares rather than a historical state-vs-national lean.
+            prior_target = prior_state_alr
+
         observed = float(state_poll_counts.get(uf, 0))
-        data_weight = observed / (observed + strength)
-        alr_draws[:, uf_index, :] = data_weight * alr_draws[:, uf_index, :] + (1.0 - data_weight) * prior_alr
+        data_weight = observed / (observed + max(strength, 1e-6))
+        alr_draws[:, uf_index, :] = (
+            data_weight * alr_draws[:, uf_index, :]
+            + (1.0 - data_weight) * prior_target
+        )
     return alr_draws
 
 
@@ -295,10 +329,16 @@ def fit_hierarchical_poll_model(
     *,
     state_priors: pd.DataFrame | None = None,
     calibration: PollsterCalibration | None = None,
+    forecast_date: date | None = None,
     n_draws: int = 8_000,
     seed: int = 42,
     half_life_days: float = 24.0,
 ) -> PollPosterior:
+    target_date = forecast_date or as_of_date
+    if target_date < as_of_date:
+        raise ValueError("forecast_date não pode ser anterior a as_of_date")
+    forecast_days = int((target_date - as_of_date).days)
+
     meta, candidate_ids, candidate_names, y, undecided_y = _prepare_poll_matrix(polls, as_of_date)
     if len(candidate_ids) < 2:
         raise ValueError("O modelo requer pelo menos dois candidatos.")
@@ -330,7 +370,7 @@ def fit_hierarchical_poll_model(
     )
 
     rng = np.random.default_rng(seed)
-    target_x = _target_design(columns, state_ids)
+    target_x = _target_design(columns, state_ids, time_value=forecast_days / 14.0)
     p, d = beta.shape
     l_a = _safe_cholesky(a_inv)
     l_sigma = _safe_cholesky(covariance)
@@ -338,7 +378,14 @@ def fit_hierarchical_poll_model(
     beta_draws = beta[None, :, :] + np.einsum("pq,nqd,dr->npr", l_a, z, l_sigma.T)
     alr_targets = np.einsum("sp,npd->nsd", target_x, beta_draws)
     state_counts = meta.loc[meta["uf"] != "BR"].groupby("uf")["poll_id"].nunique().to_dict()
-    alr_targets = _apply_state_priors(alr_targets, state_ids, candidate_ids, state_priors, state_counts)
+    alr_targets = _apply_state_priors(
+        alr_targets,
+        state_ids,
+        candidate_ids,
+        state_priors,
+        state_counts,
+        rng,
+    )
     support_targets = _softmax_alr(alr_targets)
 
     l_ua = _safe_cholesky(undecided_a_inv)
@@ -353,6 +400,7 @@ def fit_hierarchical_poll_model(
     effective_states = state_ids or ["BR"]
 
     current_x = target_x[0].copy()
+    current_x[1] = 0.0
     previous_x = current_x.copy()
     previous_x[1] = -1.0
     current_mean_support = _softmax_alr((current_x @ beta)[None, :])[0]
@@ -371,14 +419,12 @@ def fit_hierarchical_poll_model(
         national_records.append({
             "candidate_id": candidate_id,
             "candidate_name": candidate_name,
-            # Backward-compatible operational feature names.
             "poll_mean": mean,
             "poll_lower": lower,
             "poll_upper": upper,
             "poll_uncertainty": float(values.std(ddof=1)),
             "poll_trend_14d": momentum,
             "poll_count": int(meta["poll_id"].nunique()),
-            # Research-oriented aliases used by the historical evaluation layer.
             "mean_share": mean,
             "median_share": median,
             "lower": lower,
@@ -433,11 +479,15 @@ def fit_hierarchical_poll_model(
         "state_count": len(effective_states),
         "n_polls": int(meta["poll_id"].nunique()),
         "n_rows": int(len(meta)),
+        "as_of_date": as_of_date.isoformat(),
+        "forecast_date": target_date.isoformat(),
+        "forecast_horizon_days": forecast_days,
         "uses_external_institute_quality": False,
         "hierarchical_effects": ["institute", "collection_mode", "target_population", "uf"],
         "undecided_modeled": True,
         "correlated_candidate_error": True,
         "correlated_institute_error": True,
+        "historical_state_prior_mode": "national_swing_plus_probabilistic_state_lean",
         "weighting": "recency_times_inverse_reported_sampling_variance",
     }
     return PollPosterior(
