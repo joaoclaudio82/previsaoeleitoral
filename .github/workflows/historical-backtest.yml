@@ -20,10 +20,12 @@ on:
       - "app/data/historical_state_priors.py"
       - "app/ml/historical_backtest.py"
       - "app/ml/historical_baselines.py"
+      - "app/ml/posterior_predictive.py"
       - "app/services/hierarchical_polls.py"
       - "scripts/prepare_frozen_historical.py"
       - "scripts/run_historical_backtest.py"
       - "scripts/run_model_comparison.py"
+      - "scripts/run_state_prior_ablation.py"
       - "scripts/generate_paper_figures.py"
       - "scripts/build_paper_draft.py"
       - ".github/workflows/historical-backtest.yml"
@@ -56,9 +58,12 @@ jobs:
       - name: Run leakage-safe backtests
         shell: bash
         run: python scripts/run_historical_backtest.py --years $BACKTEST_YEARS --offsets $BACKTEST_OFFSETS --draws $BACKTEST_DRAWS
-      - name: Run baselines and ablation study
+      - name: Run polling baselines
         shell: bash
         run: python scripts/run_model_comparison.py --years $BACKTEST_YEARS --offsets $BACKTEST_OFFSETS --draws $BACKTEST_DRAWS
+      - name: Run symmetric state-prior ablation
+        shell: bash
+        run: python scripts/run_state_prior_ablation.py --years $BACKTEST_YEARS --offsets $BACKTEST_OFFSETS --draws $BACKTEST_DRAWS
       - name: Generate publication figures
         run: python scripts/generate_paper_figures.py
       - name: Populate paper with empirical results
@@ -71,6 +76,7 @@ jobs:
             data/historical/manifest.json
             reports/historical_backtest/
             reports/model_comparison/
+            reports/state_prior_ablation/
             paper/figures/
             paper/generated/
           retention-days: 30
