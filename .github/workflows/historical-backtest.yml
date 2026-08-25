@@ -1,3 +1,4 @@
+# ElectionAI v0.3 reproducible historical research pipeline
 name: historical-backtest
 
 on:
