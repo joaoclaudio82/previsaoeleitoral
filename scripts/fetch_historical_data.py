@@ -3,8 +3,13 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import pandas as pd
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from app.adapters.historical_polls import load_historical_polls
 from app.adapters.tse_historical import discover_presidential_results, discover_turnout, download_verified, extract_if_archive
@@ -24,7 +29,7 @@ def _parse_candidate_files(paths: list[Path], year: int) -> pd.DataFrame:
             normalized = normalize_presidential_results(raw, year=year)
             if not normalized.empty:
                 frames.append(normalized)
-        except Exception as exc:  # individual resources differ across historical vintages
+        except Exception as exc:
             errors.append(f"{path.name}: {exc}")
     if not frames:
         raise RuntimeError(f"No presidential TSE result file could be normalized for {year}: {errors[:5]}")
