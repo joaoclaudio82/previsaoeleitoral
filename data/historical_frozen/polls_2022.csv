@@ -1,0 +1,69 @@
+year,poll_date,pollster,lula,bolsonaro,tebet,others,undecided_share,source_table,source_url
+2022,2022-10-01,Datafolha,48,34,5,8,5.0,0,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-10-01,Ipec,47,34,5,7,7.0,1,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-10-01,Quaest,49,38,5,8,,2,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-30,Atlas,50,41,3,5,1.0,3,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-30,Ipespe,46,33,6,11,4.0,4,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-30,MDA,44,36,4,8,8.0,5,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-29,Datafolha,48,34,5,8,5.0,6,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-29,Paraná Pesquisas,44,37,6,6,7.0,7,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-29,Verita,42,45,4,7,2.0,8,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-28,Atlas,49,40,3,5,3.0,9,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-28,Brasmarket,31,45,5,8,11.0,10,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-28,Futura,41,38,7,7,7.0,11,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-28,Ideia,47,37,5,7,4.0,12,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-27,PoderData,45,36,4,10,5.0,13,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-27,Quaest,46,33,5,7,9.0,14,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-26,Atlas,48,41,2,7,2.0,15,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-26,Ipec,48,31,5,8,8.0,16,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-26,Paraná Pesquisas,43,36,5,7,9.0,17,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-25,FSB,45,35,4,10,6.0,18,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-23,Ipespe,46,35,4,6,9.0,19,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-23,Verita,42,43,4,8,3.0,20,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-22,Datafolha,47,33,5,9,6.0,21,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-21,Futura,39,39,6,9,7.0,22,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-21,Ipespe,46,35,4,8,7.0,23,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-20,Atlas,48,39,4,8,1.0,24,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-20,Brasmarket,31,45,5,7,12.0,25,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-20,Opinião,45,33,5,9,8.0,26,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-20,PoderData,44,37,4,10,5.0,27,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-20,Quaest,44,34,5,8,10.0,28,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-19,Ipec,47,31,5,8,9.0,29,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-19,Paraná Pesquisas,40,36,5,9,10.0,30,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-18,FSB,44,35,5,8,7.0,31,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-16,Ipespe,45,35,4,9,5.0,32,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-15,Datafolha,45,33,5,10,6.0,33,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-14,Brasmarket,31,44,5,9,12.0,34,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-14,Futura,39,42,3,5,12.0,35,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-14,MDA,43,35,5,7,10.0,36,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-13,PoderData,43,37,5,10,5.0,37,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-13,Quaest,42,34,4,9,11.0,38,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-12,FSB,41,35,7,11,6.0,39,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-12,Ipec,46,31,4,9,10.0,40,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-12,Paraná Pesquisas,40,37,5,8,10.0,41,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-10,Ipespe,44,36,5,10,5.0,42,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-09,Datafolha,45,34,5,9,7.0,43,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-08,Futura,36,42,5,10,7.0,44,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-06,PoderData,43,37,5,10,5.0,45,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-05,Ipec,44,31,4,10,11.0,46,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-05,Paraná Pesquisas,40,36,4,10,10.0,47,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-04,FSB,42,34,6,11,7.0,48,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-04,Quaest,44,34,4,9,9.0,49,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-01,Datafolha,45,32,5,12,6.0,50,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-01,Gerp,38,39,6,12,5.0,51,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-09-01,Ipespe,44,35,5,11,5.0,52,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-30,Paraná Pesquisas,41,37,2,10,10.0,53,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-30,PoderData,44,36,4,11,5.0,54,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-29,Ipec,44,32,3,8,13.0,55,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-29,Ipespe,43,35,5,11,6.0,56,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-28,FSB,43,36,4,10,7.0,57,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-28,MDA,42,34,2,9,13.0,58,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-28,Quaest,44,32,3,10,11.0,59,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-25,Futura,37,40,2,12,9.0,60,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-24,Atlas,47,38,4,9,2.0,61,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-24,Ideia Big Data,44,36,4,11,5.0,62,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-23,Paraná Pesquisas,42,37,3,8,10.0,63,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-22,Brasmarket,33,41,3,6,17.0,64,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-21,FSB,45,36,3,11,5.0,65,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-16,Datafolha,47,32,2,11,8.0,66,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
+2022,2022-08-16,PoderData,44,37,4,8,7.0,67,https://github.com/Nexo-Dados/pesquisas-presidenciais-2022/blob/main/pesquisas_1t.csv
