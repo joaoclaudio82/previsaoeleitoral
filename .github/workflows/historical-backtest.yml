@@ -32,6 +32,7 @@ on:
       - "scripts/run_robustness_suite.py"
       - "scripts/generate_paper_figures.py"
       - "scripts/build_paper_draft.py"
+      - "scripts/append_robustness_to_paper.py"
       - "tests/test_dynamic_polling.py"
       - "tests/test_geographic_baseline.py"
       - "tests/test_robustness.py"
@@ -79,6 +80,8 @@ jobs:
         run: python scripts/generate_paper_figures.py
       - name: Populate paper with empirical results
         run: python scripts/build_paper_draft.py
+      - name: Append robustness results to paper
+        run: python scripts/append_robustness_to_paper.py
       - name: Publish research artifact
         uses: actions/upload-artifact@v4
         with:
