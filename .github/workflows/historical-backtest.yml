@@ -1,4 +1,4 @@
-# ElectionAI v0.3 reproducible historical research pipeline (Wikimedia REST fallback)
+# ElectionAI v0.3 reproducible historical research pipeline (MediaWiki API fallback)
 name: historical-backtest
 
 on:
