@@ -20,14 +20,19 @@ on:
       - "app/data/historical_state_priors.py"
       - "app/ml/historical_backtest.py"
       - "app/ml/historical_baselines.py"
+      - "app/ml/dynamic_polling.py"
+      - "app/ml/geographic_baseline.py"
       - "app/ml/posterior_predictive.py"
       - "app/services/hierarchical_polls.py"
       - "scripts/prepare_frozen_historical.py"
       - "scripts/run_historical_backtest.py"
       - "scripts/run_model_comparison.py"
       - "scripts/run_state_prior_ablation.py"
+      - "scripts/run_robustness_suite.py"
       - "scripts/generate_paper_figures.py"
       - "scripts/build_paper_draft.py"
+      - "tests/test_dynamic_polling.py"
+      - "tests/test_geographic_baseline.py"
       - ".github/workflows/historical-backtest.yml"
 
 jobs:
@@ -36,6 +41,7 @@ jobs:
     timeout-minutes: 120
     env:
       BACKTEST_DRAWS: ${{ inputs.draws || '3000' }}
+      ROBUSTNESS_DRAWS: "2000"
       BACKTEST_YEARS: ${{ inputs.years || '2014 2018 2022' }}
       BACKTEST_OFFSETS: "15 7 3 1"
       PYTHONPATH: ${{ github.workspace }}
@@ -64,6 +70,9 @@ jobs:
       - name: Run symmetric state-prior ablation
         shell: bash
         run: python scripts/run_state_prior_ablation.py --years $BACKTEST_YEARS --offsets $BACKTEST_OFFSETS --draws $BACKTEST_DRAWS
+      - name: Run cross-election robustness suite
+        shell: bash
+        run: python scripts/run_robustness_suite.py --years $BACKTEST_YEARS --offsets $BACKTEST_OFFSETS --draws $ROBUSTNESS_DRAWS
       - name: Generate publication figures
         run: python scripts/generate_paper_figures.py
       - name: Populate paper with empirical results
@@ -77,6 +86,7 @@ jobs:
             reports/historical_backtest/
             reports/model_comparison/
             reports/state_prior_ablation/
+            reports/robustness/
             paper/figures/
             paper/generated/
           retention-days: 30
