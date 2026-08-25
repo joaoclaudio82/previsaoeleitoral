@@ -49,6 +49,15 @@ def _softmax_alr(values: np.ndarray) -> np.ndarray:
     return exp / exp.sum(axis=-1, keepdims=True) * 100.0
 
 
+def _covariance_to_correlation(covariance: np.ndarray) -> np.ndarray:
+    covariance = np.atleast_2d(np.asarray(covariance, dtype=float))
+    std = np.sqrt(np.clip(np.diag(covariance), 1e-12, None))
+    correlation = covariance / np.outer(std, std)
+    correlation = np.clip((correlation + correlation.T) / 2, -1.0, 1.0)
+    np.fill_diagonal(correlation, 1.0)
+    return correlation
+
+
 @dataclass
 class PollPosterior:
     candidate_ids: list[str]
@@ -65,7 +74,10 @@ class PollPosterior:
     diagnostics: dict
 
 
-def _prepare_poll_matrix(polls: pd.DataFrame, as_of_date: date) -> tuple[pd.DataFrame, list[str], list[str], np.ndarray, np.ndarray]:
+def _prepare_poll_matrix(
+    polls: pd.DataFrame,
+    as_of_date: date,
+) -> tuple[pd.DataFrame, list[str], list[str], np.ndarray, np.ndarray]:
     missing = REQUIRED_COLUMNS - set(polls.columns)
     if missing:
         raise ValueError(f"Colunas ausentes nas pesquisas: {sorted(missing)}")
@@ -80,21 +92,20 @@ def _prepare_poll_matrix(polls: pd.DataFrame, as_of_date: date) -> tuple[pd.Data
     if frame.empty:
         raise ValueError("Não há pesquisas válidas até a data de referência.")
 
-    candidates = (
-        frame[["candidate_id", "candidate_name"]]
-        .drop_duplicates()
-        .sort_values("candidate_id")
-    )
+    candidates = frame[["candidate_id", "candidate_name"]].drop_duplicates().sort_values("candidate_id")
     candidate_ids = candidates["candidate_id"].astype(str).tolist()
     candidate_names = candidates["candidate_name"].astype(str).tolist()
     poll_meta = (
         frame.groupby("poll_id", as_index=False)
         .agg(
-            field_date=("field_date", "max"), institute=("institute", "first"),
+            field_date=("field_date", "max"),
+            institute=("institute", "first"),
             collection_mode=("collection_mode", "first"),
             target_population=("target_population", "first"),
-            sample_size=("sample_size", "max"), margin_error=("margin_error", "max"),
-            scope=("scope", "first"), uf=("uf", "first"),
+            sample_size=("sample_size", "max"),
+            margin_error=("margin_error", "max"),
+            scope=("scope", "first"),
+            uf=("uf", "first"),
             undecided_share=("undecided_share", "max"),
         )
         .sort_values(["field_date", "poll_id"])
@@ -105,6 +116,7 @@ def _prepare_poll_matrix(polls: pd.DataFrame, as_of_date: date) -> tuple[pd.Data
     if pivot.isna().any().any():
         incomplete = pivot.index[pivot.isna().any(axis=1)].tolist()
         raise ValueError(f"Pesquisas sem todos os candidatos: {incomplete[:5]}")
+
     shares = np.clip(pivot.to_numpy(dtype=float), 0.01, None)
     shares = shares / shares.sum(axis=1, keepdims=True)
     reference = shares[:, [-1]]
@@ -114,13 +126,20 @@ def _prepare_poll_matrix(polls: pd.DataFrame, as_of_date: date) -> tuple[pd.Data
     return poll_meta, candidate_ids, candidate_names, y, undecided_logit
 
 
-def _build_design(meta: pd.DataFrame, as_of_date: date, state_ids: Iterable[str]) -> tuple[np.ndarray, list[tuple[str, str]], np.ndarray]:
+def _build_design(
+    meta: pd.DataFrame,
+    as_of_date: date,
+    state_ids: Iterable[str],
+) -> tuple[np.ndarray, list[tuple[str, str]], np.ndarray]:
     columns: list[tuple[str, str]] = [("intercept", "intercept"), ("time", "trend")]
     levels = {
         "institute": sorted(meta["institute"].astype(str).unique()),
         "collection_mode": sorted(meta["collection_mode"].astype(str).unique()),
         "target_population": sorted(meta["target_population"].astype(str).unique()),
-        "uf": sorted(set(str(x) for x in state_ids if str(x) != "BR") | set(meta.loc[meta["uf"] != "BR", "uf"].astype(str))),
+        "uf": sorted(
+            set(str(x) for x in state_ids if str(x) != "BR")
+            | set(meta.loc[meta["uf"] != "BR", "uf"].astype(str))
+        ),
     }
     for group, values in levels.items():
         columns.extend((group, value) for value in values)
@@ -148,8 +167,7 @@ def _build_design(meta: pd.DataFrame, as_of_date: date, state_ids: Iterable[str]
             "target_population": 0.25,
             "uf": 0.70,
         }[group]
-    prior_precision = 1.0 / np.square(prior_sd)
-    return x, columns, prior_precision
+    return x, columns, 1.0 / np.square(prior_sd)
 
 
 def _target_design(columns: list[tuple[str, str]], state_ids: list[str]) -> np.ndarray:
@@ -219,12 +237,19 @@ def _fit_matrix_normal(
         for institute, idx in meta.groupby("institute").groups.items():
             values = residual[np.array(list(idx), dtype=int)]
             n = max(values.size, 1)
-            prior_var = calibration.institute_variance.get(str(institute), calibration.global_variance) if calibration else median_var
+            if calibration is not None:
+                prior_var = calibration.institute_variance.get(str(institute), calibration.global_variance)
+            else:
+                prior_var = median_var
             posterior_var = (8.0 * prior_var + float(np.square(values).sum())) / (8.0 + n)
             updated[str(institute)] = float(np.clip(median_var / max(posterior_var, 1e-8), 0.20, 4.0))
         reliability = updated
 
-    weights = np.clip(base_weights * meta["institute"].astype(str).map(reliability).to_numpy(dtype=float), 1e-5, 1e6)
+    weights = np.clip(
+        base_weights * meta["institute"].astype(str).map(reliability).to_numpy(dtype=float),
+        1e-5,
+        1e6,
+    )
     centered = residual - np.average(residual, axis=0, weights=weights)
     covariance = (centered * weights[:, None]).T @ centered / max(weights.sum(), 1.0)
     covariance = np.atleast_2d(covariance)
@@ -277,6 +302,7 @@ def fit_hierarchical_poll_model(
     meta, candidate_ids, candidate_names, y, undecided_y = _prepare_poll_matrix(polls, as_of_date)
     if len(candidate_ids) < 2:
         raise ValueError("O modelo requer pelo menos dois candidatos.")
+
     state_ids = sorted(
         set(meta.loc[meta["uf"] != "BR", "uf"].astype(str))
         | (set(state_priors["uf"].astype(str)) if state_priors is not None and not state_priors.empty else set())
@@ -285,9 +311,8 @@ def fit_hierarchical_poll_model(
     age = np.array([(as_of_date - value).days for value in meta["field_date"]], dtype=float)
     recency = np.exp(-math.log(2) * np.maximum(age, 0) / half_life_days)
     sampling_sigma = np.maximum(meta["margin_error"].to_numpy(dtype=float) / 1.96 / 10.0, 0.08)
-    # margin_error already scales approximately as 1/sqrt(n). Multiplying again by a
-    # sample-size factor would count the same sampling information twice and make
-    # large polls unrealistically dominant. We therefore use recency × inverse variance.
+    # The reported sampling margin already scales approximately as 1/sqrt(n).
+    # Adding an explicit sample-size multiplier would count the same information twice.
     base_weights = recency / np.square(sampling_sigma)
     if calibration:
         calibration_penalty = np.array([
@@ -303,6 +328,7 @@ def fit_hierarchical_poll_model(
     undecided_beta, undecided_a_inv, undecided_cov, _ = _fit_matrix_normal(
         x, undecided_y, base_weights, prior_precision, meta, calibration,
     )
+
     rng = np.random.default_rng(seed)
     target_x = _target_design(columns, state_ids)
     p, d = beta.shape
@@ -331,35 +357,87 @@ def fit_hierarchical_poll_model(
     previous_x[1] = -1.0
     current_mean_support = _softmax_alr((current_x @ beta)[None, :])[0]
     previous_mean_support = _softmax_alr((previous_x @ beta)[None, :])[0]
+    trend_14d = current_mean_support - previous_mean_support
 
-    national_summary = pd.DataFrame({
-        "candidate_id": candidate_ids, "candidate_name": candidate_names,
-        "mean_share": national_draws.mean(axis=0),
-        "median_share": np.median(national_draws, axis=0),
-        "lower": np.quantile(national_draws, 0.05, axis=0),
-        "upper": np.quantile(national_draws, 0.95, axis=0),
-        "win_probability": [float(np.mean(np.argmax(national_draws, axis=1) == i)) for i in range(len(candidate_ids))],
-        "momentum": current_mean_support - previous_mean_support,
-    })
-    state_rows = []
+    national_records: list[dict[str, object]] = []
+    winners = np.argmax(national_draws, axis=1)
+    for idx, (candidate_id, candidate_name) in enumerate(zip(candidate_ids, candidate_names)):
+        values = national_draws[:, idx]
+        lower = float(np.quantile(values, 0.05))
+        upper = float(np.quantile(values, 0.95))
+        mean = float(values.mean())
+        median = float(np.median(values))
+        momentum = float(trend_14d[idx])
+        national_records.append({
+            "candidate_id": candidate_id,
+            "candidate_name": candidate_name,
+            # Backward-compatible operational feature names.
+            "poll_mean": mean,
+            "poll_lower": lower,
+            "poll_upper": upper,
+            "poll_uncertainty": float(values.std(ddof=1)),
+            "poll_trend_14d": momentum,
+            "poll_count": int(meta["poll_id"].nunique()),
+            # Research-oriented aliases used by the historical evaluation layer.
+            "mean_share": mean,
+            "median_share": median,
+            "lower": lower,
+            "upper": upper,
+            "win_probability": float(np.mean(winners == idx)),
+            "momentum": momentum,
+        })
+    national_summary = pd.DataFrame(national_records).sort_values("poll_mean", ascending=False).reset_index(drop=True)
+
+    state_rows: list[dict[str, object]] = []
     for state_index, uf in enumerate(effective_states):
         draws = state_draws[:, state_index, :]
+        state_winners = np.argmax(draws, axis=1)
         for candidate_index, (candidate_id, candidate_name) in enumerate(zip(candidate_ids, candidate_names)):
             values = draws[:, candidate_index]
+            lower = float(np.quantile(values, 0.05))
+            upper = float(np.quantile(values, 0.95))
+            mean = float(values.mean())
             state_rows.append({
-                "uf": uf, "candidate_id": candidate_id, "candidate_name": candidate_name,
-                "mean_share": float(values.mean()), "median_share": float(np.median(values)),
-                "lower": float(np.quantile(values, 0.05)), "upper": float(np.quantile(values, 0.95)),
-                "win_probability": float(np.mean(np.argmax(draws, axis=1) == candidate_index)),
+                "uf": uf,
+                "candidate_id": candidate_id,
+                "candidate_name": candidate_name,
+                "poll_mean": mean,
+                "poll_lower": lower,
+                "poll_upper": upper,
+                "undecided_mean": float(undecided_state_draws[:, state_index].mean()),
+                "mean_share": mean,
+                "median_share": float(np.median(values)),
+                "lower": lower,
+                "upper": upper,
+                "win_probability": float(np.mean(state_winners == candidate_index)),
             })
-    institute_rows = []
-    for institute, value in sorted(reliability.items()):
-        institute_rows.append({"institute": institute, "reliability_weight": value})
+
+    institute_rows: list[dict[str, object]] = []
+    for institute, multiplier in sorted(reliability.items()):
+        count = int(meta.loc[meta["institute"].astype(str) == institute, "poll_id"].nunique())
+        prior_score = calibration.quality_score(institute) if calibration else 1.0
+        institute_rows.append({
+            "institute": institute,
+            "posterior_precision_multiplier": float(multiplier),
+            "historical_quality_score": float(prior_score),
+            "poll_count": count,
+            "reliability_weight": float(multiplier),
+        })
+
+    correlation = _covariance_to_correlation(covariance)
     diagnostics = {
+        "model": "closed_form_matrix_normal_hierarchical_bayes",
+        "candidate_dimensions": len(candidate_ids) - 1,
+        "design_parameters": len(columns),
+        "posterior_draws": n_draws,
+        "state_count": len(effective_states),
         "n_polls": int(meta["poll_id"].nunique()),
         "n_rows": int(len(meta)),
-        "state_count": len(state_ids),
-        "posterior_draws": n_draws,
+        "uses_external_institute_quality": False,
+        "hierarchical_effects": ["institute", "collection_mode", "target_population", "uf"],
+        "undecided_modeled": True,
+        "correlated_candidate_error": True,
+        "correlated_institute_error": True,
         "weighting": "recency_times_inverse_reported_sampling_variance",
     }
     return PollPosterior(
@@ -373,6 +451,6 @@ def fit_hierarchical_poll_model(
         state_summary=pd.DataFrame(state_rows),
         institute_reliability=pd.DataFrame(institute_rows),
         residual_covariance=covariance,
-        residual_correlation=np.corrcoef(covariance),
+        residual_correlation=correlation,
         diagnostics=diagnostics,
     )
