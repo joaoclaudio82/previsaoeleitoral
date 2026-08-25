@@ -1,4 +1,4 @@
-# Metodologia — ElectionAI 0.2
+# Metodologia — ElectionAI 0.4
 
 ## 1. Agregação Bayesiana hierárquica
 
@@ -54,3 +54,20 @@ Dados classificados como `synthetic` geram obrigatoriamente:
 - registro da decisão no histórico da execução.
 
 Dados não sintéticos continuam bloqueados até receberem `independently_validated`. Esse campo é uma barreira técnica, não uma certificação automática de qualidade.
+
+## 9. Cenários sociais multiagente com MiroFish
+
+A versão 0.4 introduz uma camada experimental de simulação social. Ela não modifica o posterior Bayesiano e não é ativada na execução padrão. O MiroFish é tratado como gerador de **choques contrafactuais incertos**, não como estimador direto de vencedor.
+
+O contrato permite dois tipos de intervenção:
+
+- choque de intenção de voto por candidato e UF, expresso por média e desvio-padrão em pontos percentuais;
+- choque estadual de comparecimento e participação de indecisos, também com distribuição explícita.
+
+Antes de entrar no Monte Carlo, cada média é reduzida por `confiança × agent_scenario_strength`. O valor padrão de `agent_scenario_strength` é 0,35. O desvio-padrão é preservado, evitando transformar incerteza do simulador em falsa precisão.
+
+Para cada draw, os choques são sorteados e aplicados ao suporte estadual antes da alocação probabilística de indecisos. O suporte é novamente projetado no simplex, o comparecimento é limitado ao intervalo físico usado pelo modelo e a simulação de segundo turno continua inalterada.
+
+A execução sem cenário permanece identificada como `bayesian_baseline`. Qualquer execução com cenário recebe `forecast_mode=experimental_agent_scenario`, `agent_layer_enabled=true` e diagnósticos de evento, magnitude e intensidade aplicada.
+
+A camada multiagente só deve adquirir peso operacional após replay histórico fora da amostra demonstrar ganho estável em métricas probabilísticas. Até lá, sua função é análise de sensibilidade, exploração de mecanismos sociais e construção de cenários condicionais. Detalhes operacionais estão em `docs/MIROFISH_INTEGRATION.md`.

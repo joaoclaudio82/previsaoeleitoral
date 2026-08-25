@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from app.agents.schemas import AgentScenario
 from app.ml.model import WinnerModel
 from app.ml.pollster import PollsterCalibration
 from app.ml.transfer import TransferModel
@@ -102,7 +103,12 @@ def predict(
     turnout_model_path: str | Path | None = None,
     transfer_model_path: str | Path | None = None,
     posterior_draws: int = 8_000,
+    agent_scenario: AgentScenario | None = None,
+    agent_scenario_strength: float = 0.35,
 ) -> PredictionBundle:
+    if not 0.0 <= agent_scenario_strength <= 1.0:
+        raise ValueError("agent_scenario_strength deve estar entre 0 e 1")
+
     calibration = _load_optional(pollster_calibration_path, PollsterCalibration.load)
     posterior = fit_hierarchical_poll_model(
         polls,
@@ -132,6 +138,14 @@ def predict(
     transfer_model = _load_optional(transfer_model_path, TransferModel.load)
     if transfer_model is None:
         warnings.append("Modelo treinado de transferência não encontrado; foi usado fallback ideologia/rejeição.")
+
+    effective_agent_scenario = None
+    if agent_scenario is not None:
+        effective_agent_scenario = agent_scenario.confidence_weighted(agent_scenario_strength)
+        warnings.append(
+            "Cenário multiagente experimental habilitado; resultados MiroFish são contrafactuais e não substituem o forecast Bayesiano."
+        )
+
     simulation = simulate_election(
         posterior=posterior,
         fundamentals=simulation_fundamentals,
@@ -140,6 +154,7 @@ def predict(
         n_simulations=n_simulations,
         seed=seed,
         transfer_model=transfer_model,
+        agent_scenario=effective_agent_scenario,
     )
     diagnostics = {
         **posterior.diagnostics,
@@ -148,6 +163,8 @@ def predict(
         "digital_signals": digital_diagnostics,
         "residual_correlation": posterior.residual_correlation.round(5).tolist(),
         "pollster_calibration_loaded": calibration is not None,
+        "agent_scenario_strength": agent_scenario_strength if agent_scenario is not None else 0.0,
+        "forecast_mode": "experimental_agent_scenario" if agent_scenario is not None else "bayesian_baseline",
     }
     return PredictionBundle(
         candidates=simulation.candidates,

@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 - experimental multiagent social scenarios
+
+- adiciona contrato Pydantic estrito para choques sociais produzidos por simulações multiagente;
+- adiciona encoder de eventos eleitorais que instrui o MiroFish a estimar efeitos condicionais sem declarar vencedor;
+- adiciona adapter REST para criação de projetos, grafos e preparação de simulações no MiroFish;
+- aceita importação de contratos JSON puros, envelopes ou relatórios textuais contendo JSON válido;
+- valida candidatos, UFs, duplicidades e limites físicos antes de qualquer injeção no forecast;
+- introduz shrinkage conservador por confiança do simulador e `agent_scenario_strength`;
+- injeta distribuições de choque por candidato/UF, comparecimento e indecisos dentro de cada draw do Monte Carlo;
+- preserva o modo `bayesian_baseline` sem alterações quando nenhum cenário é fornecido;
+- marca todo resultado híbrido como `experimental_agent_scenario` nos diagnósticos;
+- adiciona CLI para preparar projetos MiroFish e comparar baseline contra cenários contrafactuais;
+- adiciona testes para schema, adapter e isolamento entre forecast Bayesiano e camada multiagente;
+- documenta arquitetura, governança e protocolo de validação histórica em `docs/MIROFISH_INTEGRATION.md`.
+
 ## 0.3.0 - historical backtesting layer
 
 - adiciona manifesto de eleições presidenciais brasileiras históricas de 2010, 2014, 2018 e 2022;
