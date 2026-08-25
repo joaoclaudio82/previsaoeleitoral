@@ -40,19 +40,31 @@ def choose_resource(resources: list[dict], *terms: str) -> dict:
     return candidates[0]
 
 
+def _stable_result_archive(year: int) -> dict:
+    return {
+        "name": f"votacao_candidato_munzona_{year}",
+        "format": "ZIP",
+        "url": f"https://cdn.tse.jus.br/estatistica/sead/odsele/votacao_candidato_munzona/votacao_candidato_munzona_{year}.zip",
+        "description": "Stable TSE CDN archive: nominal candidate vote by municipality and electoral zone",
+    }
+
+
 def discover_presidential_results(year: int) -> dict:
     election = get_election(year)
-    resources = list_resources(election.tse_results_package, formats=("CSV", "ZIP", "TXT"))
-    for terms in (
-        ("presidente", "votação por seção"),
-        ("votação nominal", "município", "zona"),
-        ("votacao nominal", "municipio", "zona"),
-    ):
-        try:
-            return choose_resource(resources, *terms)
-        except LookupError:
-            continue
-    raise LookupError(f"Could not locate presidential result resource for {year}")
+    try:
+        resources = list_resources(election.tse_results_package, formats=("CSV", "ZIP", "TXT"))
+        for terms in (
+            ("presidente", "votação por seção"),
+            ("votação nominal", "município", "zona"),
+            ("votacao nominal", "municipio", "zona"),
+        ):
+            try:
+                return choose_resource(resources, *terms)
+            except LookupError:
+                continue
+    except (httpx.HTTPError, LookupError):
+        pass
+    return _stable_result_archive(year)
 
 
 def discover_turnout(year: int) -> dict:
@@ -72,7 +84,8 @@ def download_verified(resource: dict, destination_dir: str | Path, timeout: floa
     suffix = Path(url.split("?", 1)[0]).suffix or ".bin"
     target = destination / f"{safe_name}{suffix}"
     digest = hashlib.sha256()
-    with httpx.stream("GET", url, timeout=timeout, follow_redirects=True) as response:
+    headers = {"User-Agent": "ElectionAI-research/0.3 (+https://github.com/joaoclaudio82/previsaoeleitoral)"}
+    with httpx.stream("GET", url, timeout=timeout, follow_redirects=True, headers=headers) as response:
         response.raise_for_status()
         with target.open("wb") as handle:
             for chunk in response.iter_bytes():
