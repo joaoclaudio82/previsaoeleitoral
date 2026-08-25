@@ -32,9 +32,18 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
     frame["poll_date"] = pd.to_datetime(frame["poll_date"], errors="coerce").dt.date
     frame = frame[frame["poll_date"].notna()].copy()
     frame["candidate_id"] = frame["candidate_name"].map(candidate_id)
+
     sample_source = frame["sample_size"] if "sample_size" in frame.columns else pd.Series(1000, index=frame.index)
     frame["sample_size"] = pd.to_numeric(sample_source, errors="coerce").fillna(1000).clip(lower=100)
-    frame["margin_error"] = 98.0 / frame["sample_size"].map(math.sqrt)
+    implied_margin = 98.0 / frame["sample_size"].map(math.sqrt)
+    if "margin_error" in frame.columns:
+        reported_margin = pd.to_numeric(frame["margin_error"], errors="coerce")
+        frame["margin_error"] = reported_margin.where(reported_margin > 0, implied_margin).fillna(implied_margin)
+    else:
+        frame["margin_error"] = implied_margin
+
+    party_source = frame["party"] if "party" in frame.columns else pd.Series("UNKNOWN", index=frame.index)
+    frame["party"] = party_source.fillna("UNKNOWN").astype(str).str.upper().str.strip()
     source_tables = frame["source_table"] if "source_table" in frame.columns else pd.Series(0, index=frame.index)
     frame["poll_id"] = [
         _poll_id(int(y), str(p), d.isoformat(), t)
@@ -48,9 +57,10 @@ def to_model_poll_schema(raw: pd.DataFrame) -> pd.DataFrame:
             "institute": frame["pollster"].astype(str),
             "candidate_id": frame["candidate_id"],
             "candidate_name": frame["candidate_name"].astype(str),
+            "party": frame["party"],
             "share": pd.to_numeric(frame["share"], errors="coerce") * 100.0,
             "sample_size": frame["sample_size"].astype(int),
-            "margin_error": frame["margin_error"],
+            "margin_error": frame["margin_error"].astype(float),
             "collection_mode": "unknown",
             "target_population": "registered_voters",
             "undecided_share": 0.0,
