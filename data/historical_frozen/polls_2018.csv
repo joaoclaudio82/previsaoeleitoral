@@ -1,0 +1,31 @@
+year,poll_date,pollster,sample_size,haddad,ciro,bolsonaro,others,undecided_share,margin_error,source_table,source_url
+2018,2018-09-11,Paraná Pesquisas/Crusoé,2010,8.3,11.9,26.6,31.4,21.8,,0,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-12,XP/Ipespe,2000,10.0,12.0,26.0,29.0,23.0,,1,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-14,Datafolha,2820,13.0,13.0,26.0,29.0,19.0,,2,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-15,CNT/MDA,2002,17.6,10.8,28.2,17.7,25.7,,3,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-16,FSB,2000,16.0,14.0,33.0,21.0,16.0,,4,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-18,Ibope,2506,19.0,11.0,28.0,20.0,22.0,,5,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-19,XP/Ipespe,2000,16.0,11.0,28.0,22.0,23.0,,6,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-19,Brasilis,1000,17.0,7.0,30.0,29.0,17.0,,7,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-19,Datafolha,8601,16.0,13.0,28.0,26.0,17.0,,8,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-20,DataPoder360,4000,22.0,14.0,26.0,22.0,16.0,,9,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-23,Ibope,2506,22.0,11.0,28.0,21.0,18.0,,10,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-23,FSB,2000,23.0,10.0,33.0,22.0,12.0,,11,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-24,IstoÉ/Sensus,2000,24.5,7.7,30.6,14.8,22.4,,12,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-24,Ibope,2000,21.0,12.0,27.0,22.0,18.0,,13,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-25,Paraná Pesquisas/Crusoé,2020,20.2,10.1,31.2,20.3,18.2,,14,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-26,XP/Ipespe,2000,21.0,11.0,28.0,23.0,17.0,,15,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-28,Datafolha,9000,22.0,11.0,28.0,25.0,14.0,,16,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-28,CNT/MDA,2000,25.2,9.4,28.2,17.2,20.0,,17,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-30,FSB,2000,24.0,9.0,31.0,25.0,11.0,,18,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-30,Ibope,3010,21.0,11.0,31.0,20.0,17.0,,19,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-09-30,Datafolha,3240,21.0,11.0,32.0,22.0,14.0,,20,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-02,Ibope,3010,22.0,11.0,36.0,19.0,12.0,,21,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-02,Ibope,3010,23.0,10.0,32.0,18.0,17.0,,22,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-04,Paraná Pesquisas/Crusoé,2080,21.8,9.4,34.9,19.2,14.7,,23,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-04,Real Time Big Data,10000,24.0,12.0,34.0,15.0,15.0,,24,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-04,Datafolha,10930,22.0,11.0,35.0,21.0,11.0,,25,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-04,XP/Ipespe,2000,22.0,11.0,36.0,19.0,12.0,,26,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-04,Datafolha,19552,22.0,13.0,36.0,19.0,10.0,,27,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-05,CNT/MDA,2002,24.0,9.9,36.7,15.5,13.9,,28,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
+2018,2018-10-05,Veritá,5208,18.8,8.4,41.5,12.3,19.0,,29,https://en.wikipedia.org/wiki/Opinion_polling_for_the_2018_Brazilian_presidential_election
