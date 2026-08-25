@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import io
 import re
 import unicodedata
 
-import httpx
 import pandas as pd
+
+from app.adapters.wikimedia import fetch_tables
 
 
 STATE_TO_UF = {"acre": "AC", "alagoas": "AL", "amapa": "AP", "amazonas": "AM", "bahia": "BA", "ceara": "CE", "distrito federal": "DF", "espirito santo": "ES", "goias": "GO", "maranhao": "MA", "mato grosso": "MT", "mato grosso do sul": "MS", "minas gerais": "MG", "para": "PA", "paraiba": "PB", "parana": "PR", "pernambuco": "PE", "piaui": "PI", "rio de janeiro": "RJ", "rio grande do norte": "RN", "rio grande do sul": "RS", "rondonia": "RO", "roraima": "RR", "santa catarina": "SC", "sao paulo": "SP", "sergipe": "SE", "tocantins": "TO"}
@@ -75,17 +75,11 @@ def _candidate_vote_column(frame: pd.DataFrame, token: str) -> str | None:
     return scored[0][1] if scored and scored[0][0][0] > 0 else None
 
 
-def _read_tables(url: str) -> list[pd.DataFrame]:
-    response = httpx.get(url, follow_redirects=True, timeout=60.0, headers={"User-Agent": "ElectionAI-research/0.3 (academic historical election forecasting; contact via GitHub)"})
-    response.raise_for_status()
-    return pd.read_html(io.StringIO(response.text), flavor="lxml")
-
-
 def load_secondary_state_results(year: int) -> pd.DataFrame:
     if year not in RESULT_CONFIG:
         raise ValueError(f"No secondary result source configured for {year}")
     config = RESULT_CONFIG[year]
-    for raw in _read_tables(config["url"]):
+    for raw in fetch_tables(config["url"]):
         frame = _flatten(raw)
         state_col = _state_column(frame)
         if state_col is None:
