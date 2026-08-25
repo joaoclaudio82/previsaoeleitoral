@@ -1,4 +1,4 @@
-# ElectionAI v0.3 reproducible historical research pipeline (MediaWiki API fallback)
+# ElectionAI v0.3 reproducible historical research pipeline
 name: historical-backtest
 
 on:
@@ -12,10 +12,6 @@ on:
         description: Space separated scoreable election years
         required: false
         default: "2014 2018 2022"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/historical-backtest.yml"
 
 jobs:
   backtest:
@@ -39,7 +35,7 @@ jobs:
           python scripts/train.py
       - name: Unit tests
         run: pytest -q
-      - name: Fetch official and published historical data
+      - name: Fetch historical data
         run: python scripts/fetch_historical_data.py --years 2010 2014 2018 2022
       - name: Run leakage-safe backtests
         shell: bash
