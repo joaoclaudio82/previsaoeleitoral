@@ -23,6 +23,7 @@ jobs:
     env:
       BACKTEST_DRAWS: ${{ inputs.draws || '3000' }}
       BACKTEST_YEARS: ${{ inputs.years || '2014 2018 2022' }}
+      PYTHONPATH: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
