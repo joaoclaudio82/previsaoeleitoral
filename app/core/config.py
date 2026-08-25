@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     posterior_draws: int = 8_000
     random_seed: int = 42
 
+    # Experimental multiagent scenario layer. Disabled by default so the
+    # calibrated Bayesian forecast remains the canonical execution mode.
+    mirofish_base_url: str = "http://localhost:5001"
+    enable_agent_scenarios: bool = False
+    agent_scenario_path: Path = Path("data/scenarios/mirofish_scenario.json")
+    agent_scenario_strength: float = 0.35
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
 
