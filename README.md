@@ -1,8 +1,55 @@
-# ElectionAI 0.3
+# ElectionAI 0.4
 
-Plataforma experimental para **previsão probabilística de eleições presidenciais**, com agregação Bayesiana hierárquica, efeitos estaduais, nowcasting de comparecimento, simulação de segundo turno e backtesting temporal com eleições brasileiras históricas.
+Plataforma experimental para **previsão probabilística de eleições presidenciais**, com agregação Bayesiana hierárquica, efeitos estaduais, nowcasting de comparecimento, simulação de segundo turno, backtesting temporal e uma camada opcional de cenários sociais multiagente.
 
 > **Bloqueio de uso indevido:** os dados sintéticos distribuídos com a demonstração continuam bloqueados para publicação como previsão eleitoral. A API remove o campo de vencedor público, registra o bloqueio e aplica a marca d'água **“DEMONSTRAÇÃO SINTÉTICA — NÃO É PREVISÃO ELEITORAL”**. Os resultados sintéticos não representam a eleição presidencial brasileira de 2026.
+
+## Novidade da versão 0.4: cenários sociais com MiroFish
+
+A v0.4 adiciona uma camada **experimental e opt-in** para estudar como debates, notícias, escândalos, apoios e outros eventos podem produzir choques sociais condicionais. O MiroFish não substitui o modelo Bayesiano: ele produz distribuições de choque que são validadas, reduzidas conservadoramente e amostradas dentro do Monte Carlo.
+
+```text
+Dados reais ──► posterior Bayesiano ──► Monte Carlo ──► baseline
+                       │
+                       │ cenário opcional
+                       ▼
+                    MiroFish
+                       │
+             choque candidato/UF
+             turnout + indecisos
+                       │
+                       ▼
+             Monte Carlo experimental
+```
+
+Princípios da integração:
+
+- o modo padrão continua sendo `bayesian_baseline`;
+- a camada multiagente fica desabilitada por padrão;
+- candidatos, UFs, duplicidades e magnitudes são validados por schema Pydantic;
+- o efeito médio é reduzido por confiança e por `agent_scenario_strength` (padrão 0,35);
+- a incerteza do MiroFish é preservada e sorteada em cada simulação;
+- todo resultado híbrido é marcado como `experimental_agent_scenario`;
+- o ganho científico deve ser verificado por replay histórico antes de qualquer peso operacional.
+
+Fluxo básico:
+
+```bash
+python scripts/prepare_mirofish_scenario.py \
+  --event-id debate-01 \
+  --title "Debate presidencial" \
+  --description "Evento de campanha a ser simulado" \
+  --as-of 2026-08-25 \
+  --seed dados/evento.md
+
+python scripts/run_agent_scenario.py \
+  --scenario data/scenarios/mirofish_scenario.json \
+  --as-of 2026-08-25 \
+  --strength 0.35 \
+  --simulations 10000
+```
+
+A arquitetura e o contrato de troca estão documentados em [`docs/MIROFISH_INTEGRATION.md`](docs/MIROFISH_INTEGRATION.md).
 
 ## Novidade da versão 0.3: backtesting histórico real
 
@@ -136,6 +183,8 @@ Posterior por UF      Modelo estrutural
                     ▼
         Monte Carlo de primeiro turno
                     │
+                    ├── cenário MiroFish opcional e experimental
+                    │
                     ▼
  Modelo aprendido de transferência e abstenção
                     │
@@ -233,6 +282,8 @@ O campo legado `institute_quality` é ignorado.
 | `fetch_historical_data.py` | baixa e normaliza resultados/comparecimento do TSE e tabelas históricas de pesquisas |
 | `run_historical_backtest.py` | executa snapshots históricos e gera métricas nacionais/estaduais |
 | `backtest_v03.py` | avalia CSVs de previsões já produzidos |
+| `prepare_mirofish_scenario.py` | cria projeto/ontologia/grafo no MiroFish para um evento eleitoral |
+| `run_agent_scenario.py` | compara o baseline contra um contrato multiagente validado |
 | `validate_data.py` | valida contratos e qualidade dos datasets |
 | `model_report.py` | gera relatório metodológico em Markdown |
 | `generate_demo_data.py` | cria os dados sintéticos da demonstração |
@@ -242,8 +293,14 @@ O campo legado `institute_quality` é ignorado.
 
 ## Testes implementados
 
-Além da suíte da v0.2, a v0.3 cobre:
+Além da suíte da v0.3, a v0.4 cobre:
 
+- validação e limites do contrato multiagente;
+- shrinkage de efeitos por confiança;
+- parsing de relatórios MiroFish e tratamento de erros HTTP;
+- rejeição de candidatos e UFs desconhecidos;
+- isolamento do baseline quando a camada multiagente não está ativa;
+- injeção dos choques dentro dos draws do Monte Carlo;
 - normalização de resultados históricos do TSE;
 - preservação de partido e participação por UF;
 - ausência de pesquisas posteriores ao snapshot;
@@ -255,8 +312,11 @@ Além da suíte da v0.2, a v0.3 cobre:
 
 ## Limitações e próximos passos
 
-A v0.3 cria a infraestrutura necessária para validação histórica real, mas algumas limitações precisam continuar explícitas:
+A v0.4 mantém explícitas as seguintes limitações:
 
+- a camada MiroFish ainda deve ser validada retrospectivamente evento a evento antes de receber peso operacional;
+- os efeitos podem depender do LLM, do seed, da construção dos agentes e do material-semente;
+- a API de execução de longa duração do MiroFish ainda está em evolução, por isso o contrato JSON é o ponto estável de integração;
 - tabelas históricas de intenção de voto são fonte secundária e devem ser gradualmente substituídas por arquivos primários dos institutos;
 - cenários de pergunta e mudanças de candidatura exigem curadoria por eleição;
 - o modelo espacial pode evoluir de partial pooling para CAR/ICAR;
@@ -264,4 +324,4 @@ A v0.3 cria a infraestrutura necessária para validação histórica real, mas a
 - segundo turno deve receber uma reconstrução histórica própria de pesquisas e transferências;
 - nenhuma previsão real de 2026 deve ser publicada antes de os backtests produzirem calibração e cobertura aceitáveis e passarem pelo release gate.
 
-Consulte `METHODOLOGY.md`, `MODEL_CARD.md`, `CHANGELOG.md` e `docs/HISTORICAL_BACKTEST.md` para detalhes.
+Consulte `METHODOLOGY.md`, `MODEL_CARD.md`, `CHANGELOG.md`, `docs/HISTORICAL_BACKTEST.md` e `docs/MIROFISH_INTEGRATION.md` para detalhes.
